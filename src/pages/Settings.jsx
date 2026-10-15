@@ -1,10 +1,20 @@
 import { useRef, useState } from 'react'
 import { FilledButton, OutlinedButton } from '../components/Button'
 import { exportAllData, importAllData } from '../lib/db'
+import { getName, setName } from '../lib/profile'
 
 export function Settings() {
   const fileRef = useRef(null)
   const [status, setStatus] = useState('')
+  const [name, setNameInput] = useState(getName())
+  const [nameSaved, setNameSaved] = useState(false)
+
+  function handleNameBlur() {
+    setName(name)
+    setNameInput(getName())
+    setNameSaved(true)
+    setTimeout(() => setNameSaved(false), 1500)
+  }
 
   async function handleExport() {
     const data = await exportAllData()
@@ -40,6 +50,19 @@ export function Settings() {
         Rooted keeps everything on this device only. Export a backup file to keep your data safe, move it to another
         device, or restore it later.
       </p>
+
+      <div className="mt-8">
+        <label className="font-label text-[11px] uppercase tracking-label text-black/40">Display name</label>
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setNameInput(e.target.value)}
+          onBlur={handleNameBlur}
+          className="mt-2 w-full rounded-card border border-black/10 bg-white px-4 py-3 font-body text-sm text-ink-black outline-none focus:border-deep-indigo"
+          placeholder="Debbie"
+        />
+        {nameSaved && <p className="mt-1 font-body text-xs text-deep-indigo">Saved</p>}
+      </div>
 
       <div className="mt-8 flex flex-col gap-3">
         <FilledButton type="button" onClick={handleExport}>

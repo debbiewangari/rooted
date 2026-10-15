@@ -1,33 +1,35 @@
 @import "tailwindcss";
 
 @theme {
-  /* Colors */
+  /* Colors — one accent (indigo), mostly white, flat neutrals for elevation */
   --color-deep-indigo: #234386;
   --color-honey-gold: #ffc400;
   --color-burnt-orange: #ed7328;
   --color-sky-blue: #6aa8dc;
   --color-warm-sand: #d2b68c;
   --color-mint-sage: #a2d3a6;
-  --color-ink-black: #000000;
+  --color-ink-black: #111111;
   --color-pure-white: #ffffff;
-  --color-cream-paper: #fbf9f6;
+  --color-cream-paper: #ffffff;
+  --color-mist: #f5f6f8;
   --color-soft-shadow: #d6d6d6;
 
-  /* Fonts */
-  --font-display: "Bebas Neue", "Oswald", ui-sans-serif, system-ui, sans-serif;
-  --font-display-lg: "Oswald", ui-sans-serif, system-ui, sans-serif;
-  --font-script: "Caveat", cursive;
-  --font-label: "Jost", ui-sans-serif, system-ui, sans-serif;
-  --font-body: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* Fonts — one clean, modern family throughout; weight/size carry hierarchy
+     instead of a separate condensed display face. */
+  --font-display: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display-lg: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-script: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-label: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 
-  /* Radius */
-  --radius-card: 8px;
+  /* Radius — softer, more generous than the old system */
+  --radius-card: 20px;
   --radius-tag: 16px;
-  --radius-pill: 32px;
+  --radius-pill: 999px;
 
-  /* Shadows */
-  --shadow-xl: 0px 20px 27px 0px rgba(0, 0, 0, 0.05);
-  --shadow-xl-2: -14px 10px 49px 0px rgba(0, 0, 0, 0.16);
+  /* Shadows — flat elevation; shadows stay faint, never heavy */
+  --shadow-xl: 0px 4px 16px 0px rgba(17, 17, 17, 0.04);
+  --shadow-xl-2: 0px 8px 24px 0px rgba(17, 17, 17, 0.06);
 }
 
 html,
@@ -42,11 +44,11 @@ body {
 }
 
 .tracking-label {
-  letter-spacing: 0.2em;
+  letter-spacing: 0.08em;
 }
 
 .tracking-label-wide {
-  letter-spacing: 0.27em;
+  letter-spacing: 0.14em;
 }
 
 .no-scrollbar {

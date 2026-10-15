@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Blob } from '../components/Blob'
-import { BotanicalLeaf, BotanicalSprig } from '../components/BotanicalLine'
+import { HamburgerMenu } from '../components/HamburgerMenu'
+import { Logo } from '../components/Logo'
 import { UpcomingEvents } from '../components/UpcomingEvents'
+import { fetchDailyVerse } from '../lib/dailyVerse'
 import { tagColor } from '../lib/library'
+import { getGreeting, getName } from '../lib/profile'
 import { listTags, listThemes } from '../lib/db'
 
 const THEME_CARD_WIDTH = 176 + 16 // w-44 + gap-4
@@ -13,6 +15,8 @@ export function Home() {
   const [themes, setThemes] = useState([])
   const [activeTheme, setActiveTheme] = useState(0)
   const [tags, setTags] = useState([])
+  const [verse, setVerse] = useState(null)
+  const [verseError, setVerseError] = useState(false)
   const objectUrlsRef = useRef([])
   const scrollRef = useRef(null)
 
@@ -26,6 +30,9 @@ export function Home() {
       setThemes(withUrls)
     })
     listTags().then(setTags)
+    fetchDailyVerse()
+      .then(setVerse)
+      .catch(() => setVerseError(true))
     return () => {
       objectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url))
       objectUrlsRef.current = []
@@ -62,40 +69,44 @@ export function Home() {
   ]
 
   return (
-    <div className="relative overflow-hidden">
-      <BotanicalLeaf className="absolute -right-6 top-4 h-40 w-32 opacity-80" rotate={8} />
-      <BotanicalSprig className="absolute left-0 top-40 h-24 w-24 opacity-60" rotate={-10} />
-
-      <header className="relative px-6 pt-10 pb-6">
-        <Link
-          to="/settings"
-          aria-label="Backup & restore"
-          className="absolute right-6 top-10 flex h-9 w-9 items-center justify-center rounded-pill border border-black/10 bg-pure-white"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#234386" strokeWidth="1.8">
-            <circle cx="12" cy="12" r="3" />
-            <path
-              d="M19.4 13a7.7 7.7 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7.6 7.6 0 0 0-1.7-1L15 3.5h-4l-.3 2.5a7.6 7.6 0 0 0-1.7 1l-2.4-1-2 3.4L6.6 11a7.7 7.7 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7.6 7.6 0 0 0 1.7 1l.3 2.5h4l.3-2.5a7.6 7.6 0 0 0 1.7-1l2.4 1 2-3.4-2-1.6Z"
-              strokeLinejoin="round"
-            />
-          </svg>
+    <div className="min-h-screen bg-white">
+      <header className="flex items-center justify-between px-6 pt-8">
+        <Link to="/" className="text-deep-indigo">
+          <Logo size={22} />
         </Link>
-        <p className="font-label text-xs uppercase tracking-label text-deep-indigo">Welcome back</p>
-        <h1 className="mt-1 font-display text-5xl uppercase text-deep-indigo">Rooted</h1>
-        <p className="mt-2 font-script text-3xl text-deep-indigo">Grow quietly, daily.</p>
+        <HamburgerMenu />
       </header>
 
-      <div className="relative -mt-2 mb-6 h-16">
-        <Blob color="gold" className="absolute left-6 h-20 w-20" />
-        <Blob color="sage" className="absolute left-16 top-6 h-14 w-14" />
+      <div className="px-6 pt-8">
+        <h1 className="font-display text-2xl font-medium text-ink-black">
+          {getGreeting()}, {getName()}
+        </h1>
+      </div>
+
+      <div className="mt-6 px-6">
+        <div className="rounded-card border border-black/8 bg-mist px-5 py-6">
+          <p className="font-label text-[11px] uppercase tracking-label text-black/40">Daily bread</p>
+          {verse && (
+            <>
+              <p className="mt-3 font-display text-lg leading-snug text-ink-black">“{verse.text}”</p>
+              <p className="mt-3 font-label text-[11px] uppercase tracking-label text-deep-indigo">
+                {verse.reference} · {verse.translation}
+              </p>
+            </>
+          )}
+          {!verse && !verseError && <p className="mt-3 font-body text-sm text-black/40">Loading…</p>}
+          {verseError && (
+            <p className="mt-3 font-body text-sm text-black/40">Could not load today's verse — check your connection.</p>
+          )}
+        </div>
       </div>
 
       <UpcomingEvents />
 
-      <section className="relative z-10 mt-10 pb-6">
+      <section className="relative z-10 mt-8 pb-10">
         <div className="flex items-baseline justify-between px-6">
-          <h2 className="font-display text-2xl uppercase text-deep-indigo">Explore by Themes</h2>
-          <Link to="/themes" className="font-label text-xs uppercase tracking-label text-burnt-orange">
+          <h2 className="font-display text-xl font-semibold text-ink-black">Explore by Themes</h2>
+          <Link to="/themes" className="font-label text-xs uppercase tracking-label text-deep-indigo">
             See all
           </Link>
         </div>
@@ -108,9 +119,9 @@ export function Home() {
           {combined.length === 0 && (
             <Link
               to="/themes"
-              className="flex h-64 w-44 shrink-0 snap-start flex-col items-center justify-center gap-2 rounded-card border border-dashed border-black/20 bg-pure-white"
+              className="flex h-64 w-44 shrink-0 snap-start flex-col items-center justify-center gap-2 rounded-card border border-dashed border-black/15 bg-white"
             >
-              <span className="font-display text-3xl text-deep-indigo">+</span>
+              <span className="font-display text-2xl text-deep-indigo">+</span>
               <span className="font-label text-[11px] uppercase tracking-label text-black/40">Add a theme</span>
             </Link>
           )}
@@ -118,30 +129,20 @@ export function Home() {
           {combined.map((item, i) => (
             <Link key={item.key} to={item.link} className="w-44 shrink-0 snap-start">
               <div
-                className="relative h-64 w-44 overflow-hidden rounded-card bg-warm-sand shadow-xl-2"
+                className="relative h-64 w-44 overflow-hidden rounded-card bg-mist shadow-xl"
                 style={item.kind === 'tag' ? { backgroundColor: item.color } : undefined}
               >
-                {item.kind === 'theme' &&
-                  (item.imageUrl ? (
-                    <img src={item.imageUrl} alt="" className="h-full w-full object-cover" />
-                  ) : (
-                    <div className="flex h-full items-center justify-center">
-                      <BotanicalSprig className="h-16 w-16 opacity-60" color="var(--color-deep-indigo)" />
-                    </div>
-                  ))}
-                {item.kind === 'tag' && (
-                  <div className="flex h-full items-center justify-center">
-                    <BotanicalSprig className="h-16 w-16 opacity-50" color="#ffffff" />
-                  </div>
+                {item.kind === 'theme' && item.imageUrl && (
+                  <img src={item.imageUrl} alt="" className="h-full w-full object-cover" />
                 )}
                 <span className="absolute left-3 top-3 rounded-pill bg-black/35 px-2 py-0.5 font-label text-[10px] text-pure-white">
                   {String(i + 1).padStart(2, '0')}
                 </span>
               </div>
-              <p className="mt-2 font-display text-lg text-deep-indigo">{item.title}</p>
-              {item.subtitle && <p className="font-body text-xs italic text-black/50">{item.subtitle}</p>}
+              <p className="mt-2 font-display text-base font-medium text-ink-black">{item.title}</p>
+              {item.subtitle && <p className="font-body text-xs text-black/50">{item.subtitle}</p>}
               {item.reference && (
-                <p className="mt-1 font-label text-[10px] uppercase tracking-label text-burnt-orange">
+                <p className="mt-1 font-label text-[10px] uppercase tracking-label text-deep-indigo">
                   {item.reference}
                 </p>
               )}
