@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Card } from '../components/Card'
 import { FilledButton, OutlinedButton } from '../components/Button'
-import { BotanicalLeaf } from '../components/BotanicalLine'
 import { VerseList } from '../components/VerseList'
 import { DEFAULT_TRANSLATION, QUICK_PICKS, TRANSLATIONS, fetchPassage } from '../lib/bible'
 import { NEW_TESTAMENT, OLD_TESTAMENT } from '../lib/bibleBooks'
@@ -69,10 +68,8 @@ export function Bible() {
 
   return (
     <div className="relative min-h-screen overflow-hidden px-6 pt-10">
-      <BotanicalLeaf className="absolute -right-8 top-2 h-36 w-28 opacity-50" rotate={-12} />
-
-      <p className="font-label text-xs uppercase tracking-label text-deep-indigo">Scripture</p>
-      <h1 className="font-display text-4xl uppercase text-deep-indigo">Bible</h1>
+      <p className="font-label text-xs uppercase tracking-label text-black/40">Scripture</p>
+      <h1 className="mt-1 font-display text-2xl font-semibold text-ink-black">Bible</h1>
 
       <form onSubmit={handleSubmit} className="relative z-10 mt-5 flex gap-2">
         <input
@@ -121,7 +118,7 @@ export function Bible() {
       </div>
 
       <section className="relative z-10 mt-6">
-        <h2 className="font-display text-2xl uppercase text-deep-indigo">Browse</h2>
+        <h2 className="font-display text-xl font-semibold text-ink-black">Browse</h2>
 
         <div className="mt-3 flex rounded-pill border border-black/10 bg-pure-white p-1">
           {[
@@ -164,12 +161,12 @@ export function Bible() {
             <button
               type="button"
               onClick={() => setActiveBook(null)}
-              className="font-label text-[11px] uppercase tracking-label text-burnt-orange"
+              className="font-label text-[11px] uppercase tracking-label text-deep-indigo"
             >
               ← Back to books
             </button>
 
-            <p className="mt-3 font-display text-xl uppercase text-deep-indigo">{activeBook.name}</p>
+            <p className="mt-3 font-display text-lg font-semibold text-ink-black">{activeBook.name}</p>
             <div className="mt-3 grid grid-cols-6 gap-2">
               {Array.from({ length: activeBook.chapters }, (_, i) => i + 1).map((chapter) => (
                 <button
@@ -193,7 +190,7 @@ export function Bible() {
         {passage && status !== 'loading' && (
           <Card>
             <div className="flex items-baseline justify-between gap-3">
-              <p className="font-display text-xl uppercase text-deep-indigo">{passage.reference}</p>
+              <p className="font-display text-lg font-semibold text-ink-black">{passage.reference}</p>
               <p className="font-label text-[10px] uppercase tracking-label text-black/40 whitespace-nowrap">
                 {activeTranslation?.name}
               </p>

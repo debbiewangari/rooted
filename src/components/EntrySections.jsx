@@ -122,7 +122,7 @@ export function EntrySections({ sections, onChange }) {
         <button
           type="button"
           onClick={() => setAddingType(true)}
-          className="self-start font-label text-[11px] uppercase tracking-label text-burnt-orange"
+          className="self-start font-label text-[11px] uppercase tracking-label text-deep-indigo"
         >
           + Add section
         </button>
@@ -145,7 +145,7 @@ function PrayerItemsEditor({ items, onAdd, onRemove }) {
       <ul className="flex flex-col gap-2">
         {items.map((item) => (
           <li key={item.id} className="flex items-start gap-2">
-            <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-burnt-orange" />
+            <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-deep-indigo" />
             <span className="flex-1 font-body text-sm text-black/80">{item.text}</span>
             <button
               type="button"
@@ -175,7 +175,7 @@ function PrayerItemsEditor({ items, onAdd, onRemove }) {
         <button
           type="button"
           onClick={handleAdd}
-          className="font-label text-[10px] uppercase tracking-label text-burnt-orange"
+          className="font-label text-[10px] uppercase tracking-label text-deep-indigo"
         >
           Add
         </button>

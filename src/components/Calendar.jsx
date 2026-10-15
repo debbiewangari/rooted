@@ -84,7 +84,7 @@ export function Calendar() {
         >
           ‹
         </button>
-        <button type="button" onClick={togglePicker} className="font-display text-xl uppercase text-deep-indigo">
+        <button type="button" onClick={togglePicker} className="font-display text-lg font-semibold text-ink-black">
           {headerLabel}
         </button>
         <button
@@ -240,7 +240,7 @@ export function Calendar() {
                 <div key={e.id} className="flex items-start gap-2 rounded-card border border-black/10 bg-pure-white px-3 py-2">
                   <span className="mt-1 h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: cat?.hex }} />
                   <div className="min-w-0">
-                    <p className="truncate font-display text-sm text-deep-indigo">{e.title}</p>
+                    <p className="truncate font-display text-sm font-medium text-ink-black">{e.title}</p>
                     {e.notes && <p className="truncate font-body text-xs text-black/60">{e.notes}</p>}
                   </div>
                 </div>
@@ -249,7 +249,7 @@ export function Calendar() {
           </div>
           <Link
             to={`/calendar/${cursorKey}`}
-            className="mt-3 inline-block font-label text-[11px] uppercase tracking-label text-burnt-orange"
+            className="mt-3 inline-block font-label text-[11px] uppercase tracking-label text-deep-indigo"
           >
             + Add / manage day →
           </Link>

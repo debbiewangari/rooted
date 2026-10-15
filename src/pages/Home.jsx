@@ -78,8 +78,10 @@ export function Home() {
       </header>
 
       <div className="px-6 pt-8">
-        <h1 className="font-display text-2xl font-medium text-ink-black">
-          {getGreeting()}, {getName()}
+        <h1 className="font-display text-2xl font-medium leading-snug text-ink-black">
+          {getGreeting()},
+          <br />
+          {getName()}
         </h1>
       </div>
 

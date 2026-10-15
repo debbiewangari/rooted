@@ -62,8 +62,8 @@ export function CalendarDay() {
 
   return (
     <div className="min-h-screen px-6 pt-10 pb-6">
-      <p className="font-label text-xs uppercase tracking-label text-deep-indigo">Calendar</p>
-      <h1 className="font-display text-3xl uppercase text-deep-indigo">{formatLongDate(date)}</h1>
+      <p className="font-label text-xs uppercase tracking-label text-black/40">Calendar</p>
+      <h1 className="mt-1 font-display text-2xl font-semibold text-ink-black">{formatLongDate(date)}</h1>
 
       <div className="mt-6 flex flex-col gap-3">
         {events.length === 0 && (
@@ -74,7 +74,7 @@ export function CalendarDay() {
             <Card key={e.id}>
               <Link to={`/events/${e.id}`} className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="font-display text-lg text-deep-indigo">{e.title}</p>
+                  <p className="font-display text-base font-medium text-ink-black">{e.title}</p>
                   {e.startDate !== e.endDate && (
                     <p className="font-label text-[10px] uppercase tracking-label text-black/40">
                       {e.startDate} – {e.endDate}
@@ -102,7 +102,7 @@ export function CalendarDay() {
       </div>
 
       <form onSubmit={handleAdd} className="mt-8 flex flex-col gap-3">
-        <h2 className="font-display text-xl uppercase text-deep-indigo">Add to this day</h2>
+        <h2 className="font-display text-lg font-semibold text-ink-black">Add to this day</h2>
 
         <input
           value={title}
@@ -123,7 +123,7 @@ export function CalendarDay() {
           value={anchorVerse}
           onChange={(e) => setAnchorVerse(e.target.value)}
           placeholder="Anchor verse (optional, e.g. Psalm 23)"
-          className="w-full rounded-card border border-black/10 bg-pure-white px-3 py-2.5 font-body text-sm text-burnt-orange focus:outline-none"
+          className="w-full rounded-card border border-black/10 bg-pure-white px-3 py-2.5 font-body text-sm text-ink-black focus:outline-none"
         />
 
         <div className="flex gap-3">

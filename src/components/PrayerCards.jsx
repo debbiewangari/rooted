@@ -57,11 +57,11 @@ export function PrayerCards({ eventId }) {
   return (
     <section className="mt-8">
       <div className="flex items-baseline justify-between">
-        <h2 className="font-display text-xl uppercase text-deep-indigo">Prayer Lists</h2>
+        <h2 className="font-display text-lg font-semibold text-ink-black">Prayer Lists</h2>
         <button
           type="button"
           onClick={() => setAddingCard((v) => !v)}
-          className="font-label text-[11px] uppercase tracking-label text-burnt-orange"
+          className="font-label text-[11px] uppercase tracking-label text-deep-indigo"
         >
           + New list
         </button>
@@ -104,7 +104,7 @@ export function PrayerCards({ eventId }) {
                 onClick={() => toggleCard(card.id)}
                 className="flex w-full items-center justify-between"
               >
-                <p className="font-display text-lg text-deep-indigo">{card.title}</p>
+                <p className="font-display text-base font-medium text-ink-black">{card.title}</p>
                 <span className="font-label text-[10px] uppercase tracking-label text-black/40">
                   {card.items.length} {expanded ? '▲' : '▼'}
                 </span>
@@ -115,7 +115,7 @@ export function PrayerCards({ eventId }) {
                   <ul className="flex flex-col gap-2">
                     {card.items.map((item) => (
                       <li key={item.id} className="flex items-start gap-2">
-                        <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-burnt-orange" />
+                        <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-deep-indigo" />
                         <span className="flex-1 font-body text-sm text-black/80">{item.text}</span>
                         <button
                           type="button"

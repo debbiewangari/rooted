@@ -52,7 +52,7 @@ export function EventVerseList({ verses, onAdd, onRemove }) {
                 onClick={() => toggle(entry)}
                 className="flex w-full items-center justify-between px-3 py-2.5"
               >
-                <span className="font-display text-base text-deep-indigo">{entry.reference}</span>
+                <span className="font-display text-base font-medium text-ink-black">{entry.reference}</span>
                 <span className="font-label text-xs text-black/40">{expanded ? '▲' : '▼'}</span>
               </button>
               {expanded && (

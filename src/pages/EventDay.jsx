@@ -133,7 +133,7 @@ export function EventDay() {
           ←
         </Link>
         <div className="text-center">
-          <p className="font-display text-lg uppercase text-deep-indigo">{event.title}</p>
+          <p className="font-display text-base font-semibold text-ink-black">{event.title}</p>
           <p className="font-label text-[10px] uppercase tracking-label text-black/40">
             Day {dayIndex + 1} of {dates.length}
           </p>
@@ -178,7 +178,7 @@ export function EventDay() {
           ‹
         </button>
         <div className="text-center">
-          <p className="font-display text-2xl uppercase text-deep-indigo">Day {dayIndex + 1}</p>
+          <p className="font-display text-xl font-semibold text-ink-black">Day {dayIndex + 1}</p>
           <p className="font-label text-[11px] uppercase tracking-label text-black/40">{formatLongDate(date)}</p>
         </div>
         <button
@@ -212,7 +212,7 @@ export function EventDay() {
             <button
               type="button"
               onClick={() => setEditingFocus(true)}
-              className="mt-1 block w-full text-left font-display text-lg text-deep-indigo"
+              className="mt-1 block w-full text-left font-display text-base font-medium text-ink-black"
             >
               {fields.focus}
             </button>
@@ -237,7 +237,7 @@ export function EventDay() {
             <button
               type="button"
               onClick={() => setEditingMinister(true)}
-              className="mt-1 block w-full text-left font-display text-lg text-deep-indigo"
+              className="mt-1 block w-full text-left font-display text-base font-medium text-ink-black"
             >
               {fields.minister}
             </button>

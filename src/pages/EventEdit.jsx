@@ -103,8 +103,8 @@ export function EventEdit() {
 
   return (
     <div className="min-h-screen px-6 pt-10 pb-6">
-      <p className="font-label text-xs uppercase tracking-label text-deep-indigo">Edit</p>
-      <h1 className="font-display text-3xl uppercase text-deep-indigo">Event details</h1>
+      <p className="font-label text-xs uppercase tracking-label text-black/40">Edit</p>
+      <h1 className="mt-1 font-display text-2xl font-semibold text-ink-black">Event details</h1>
 
       <form onSubmit={handleSave} className="mt-6 flex flex-col gap-4">
         <label className="block">
@@ -164,7 +164,7 @@ export function EventEdit() {
             value={anchorVerse}
             onChange={(e) => setAnchorVerse(e.target.value)}
             placeholder="e.g. Psalm 23"
-            className="mt-1 w-full rounded-card border border-black/10 bg-pure-white px-3 py-2.5 font-body text-sm text-burnt-orange focus:outline-none"
+            className="mt-1 w-full rounded-card border border-black/10 bg-pure-white px-3 py-2.5 font-body text-sm text-ink-black focus:outline-none"
           />
         </label>
 

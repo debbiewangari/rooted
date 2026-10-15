@@ -97,7 +97,7 @@ export function EventDetail() {
       </div>
 
       <div className="px-6 pt-5">
-        <h1 className="font-display text-3xl uppercase text-deep-indigo">{event.title}</h1>
+        <h1 className="font-display text-2xl font-semibold text-ink-black">{event.title}</h1>
         <p className="mt-1 font-label text-[11px] uppercase tracking-label text-black/40">
           {progress.totalDays} day{progress.totalDays === 1 ? '' : 's'} · {event.startDate} – {event.endDate}
         </p>
@@ -105,15 +105,15 @@ export function EventDetail() {
         {event.theme && (
           <div className="mt-4">
             <p className="font-label text-[10px] uppercase tracking-label text-black/40">Theme</p>
-            <p className="font-display text-lg text-deep-indigo">{event.theme}</p>
+            <p className="font-display text-base font-medium text-ink-black">{event.theme}</p>
           </div>
         )}
 
         {event.anchorVerse && (
           <div className="mt-4">
             <p className="font-label text-[10px] uppercase tracking-label text-black/40">Anchor Verse</p>
-            <p className="font-display text-lg text-deep-indigo">{event.anchorVerse}</p>
-            {anchorQuote && <p className="mt-1 font-body text-sm italic text-black/60">“{anchorQuote}”</p>}
+            <p className="font-display text-base font-medium text-ink-black">{event.anchorVerse}</p>
+            {anchorQuote && <p className="mt-1 font-body text-sm text-black/60">“{anchorQuote}”</p>}
           </div>
         )}
 
@@ -126,7 +126,7 @@ export function EventDetail() {
 
         <Card className="mt-6">
           <p className="font-label text-[10px] uppercase tracking-label text-black/40">Your Progress</p>
-          <p className="mt-1 font-display text-xl text-deep-indigo">
+          <p className="mt-1 font-display text-lg font-semibold text-ink-black">
             {progress.status === 'upcoming' ? `Starts ${event.startDate}` : `Day ${progress.dayIndex} of ${progress.totalDays}`}
           </p>
           <div className="mt-2 h-2 w-full overflow-hidden rounded-pill bg-cream-paper">

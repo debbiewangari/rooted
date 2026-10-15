@@ -74,7 +74,7 @@ export function Library() {
     <div className="min-h-screen px-6 pt-10 pb-6">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="font-display text-4xl uppercase text-deep-indigo">Library</h1>
+          <h1 className="font-display text-2xl font-semibold text-ink-black">Library</h1>
           <p className="mt-1 font-body text-sm text-black/60">Everything you've gathered along the way.</p>
         </div>
         <FilledButton to="/journal/new" className="shrink-0 px-5 py-3 text-xl leading-none">
@@ -132,7 +132,7 @@ export function Library() {
                 <span className="flex items-center gap-2.5">
                   <Icon color="#234386" size={20} />
                   <span>
-                    <span className="block font-display text-base text-deep-indigo">{t.label}</span>
+                    <span className="block font-display text-base font-medium text-ink-black">{t.label}</span>
                     <span className="block font-label text-[10px] uppercase tracking-label text-black/50">
                       {counts[t.id] || 0} entries
                     </span>
@@ -147,8 +147,8 @@ export function Library() {
 
       <section className="mt-8">
         <div className="flex items-baseline justify-between">
-          <h2 className="font-display text-2xl uppercase text-deep-indigo">
-            {hasFilter ? `Results (${filtered.length})` : 'Recently Added'}
+          <h2 className="font-display text-xl font-semibold text-ink-black">
+            {hasFilter ? `Results (${filtered.length})` : 'Recently added'}
           </h2>
           {hasFilter && (
             <button
@@ -158,7 +158,7 @@ export function Library() {
                 setActiveTag(null)
                 setQuery('')
               }}
-              className="font-label text-xs uppercase tracking-label text-burnt-orange"
+              className="font-label text-xs uppercase tracking-label text-deep-indigo"
             >
               Clear
             </button>
@@ -184,7 +184,7 @@ export function Library() {
                   <Icon color="#234386" size={18} />
                 </div>
                 <Link to={`/journal/${entry.id}`} className="min-w-0 flex-1">
-                  <p className="truncate font-display text-base text-deep-indigo">{entry.title}</p>
+                  <p className="truncate font-display text-base font-medium text-ink-black">{entry.title}</p>
                   <p className="truncate font-label text-[10px] uppercase tracking-label text-black/40">
                     {cfg.singular}
                     {entry.reference ? ` · ${entry.reference}` : ''}
@@ -231,11 +231,11 @@ export function Library() {
 
       <section className="mt-8">
         <div className="flex items-baseline justify-between">
-          <h2 className="font-display text-2xl uppercase text-deep-indigo">Explore by Themes</h2>
+          <h2 className="font-display text-xl font-semibold text-ink-black">Explore by Themes</h2>
           <button
             type="button"
             onClick={() => setAddingTag((v) => !v)}
-            className="font-label text-xs uppercase tracking-label text-burnt-orange"
+            className="font-label text-xs uppercase tracking-label text-deep-indigo"
           >
             + New
           </button>

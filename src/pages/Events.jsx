@@ -27,8 +27,8 @@ export function Events() {
     <div className="min-h-screen px-6 pt-10 pb-6">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="font-label text-xs uppercase tracking-label text-deep-indigo">Challenges</p>
-          <h1 className="font-display text-4xl uppercase text-deep-indigo">Events</h1>
+          <p className="font-label text-xs uppercase tracking-label text-black/40">Challenges</p>
+          <h1 className="mt-1 font-display text-2xl font-semibold text-ink-black">Events</h1>
         </div>
         <FilledButton to="/calendar" className="shrink-0 px-5 py-3 text-[11px]">
           View in Calendar

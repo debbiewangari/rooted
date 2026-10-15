@@ -43,8 +43,8 @@ export function Themes() {
     <div className="relative min-h-screen px-6 pt-10 pb-6">
       <div className="flex items-baseline justify-between">
         <div>
-          <p className="font-label text-xs uppercase tracking-label text-deep-indigo">Browse</p>
-          <h1 className="font-display text-4xl uppercase text-deep-indigo">Themes</h1>
+          <p className="font-label text-xs uppercase tracking-label text-black/40">Browse</p>
+          <h1 className="mt-1 font-display text-2xl font-semibold text-ink-black">Themes</h1>
         </div>
         <FilledButton to="/themes/new" className="px-6 py-3 text-[11px]">
           + New
@@ -89,9 +89,9 @@ export function Themes() {
                 {String(i + 1).padStart(2, '0')}
               </span>
             </div>
-            <p className="mt-2 font-display text-base text-deep-indigo">{theme.title}</p>
-            {theme.subtitle && <p className="font-body text-xs italic text-black/50">{theme.subtitle}</p>}
-            <p className="mt-1 font-label text-[10px] uppercase tracking-label text-burnt-orange">
+            <p className="mt-2 font-display text-base font-medium text-ink-black">{theme.title}</p>
+            {theme.subtitle && <p className="font-body text-xs text-black/50">{theme.subtitle}</p>}
+            <p className="mt-1 font-label text-[10px] uppercase tracking-label text-deep-indigo">
               {theme.reference}
             </p>
           </Link>

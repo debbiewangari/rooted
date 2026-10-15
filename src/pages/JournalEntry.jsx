@@ -94,7 +94,7 @@ export function JournalEntry() {
 
   return (
     <form onSubmit={handleSave} className="flex min-h-screen flex-col px-6 pt-10 pb-6">
-      <p className="font-label text-xs uppercase tracking-label text-deep-indigo">
+      <p className="font-label text-xs uppercase tracking-label text-black/40">
         {id ? 'Edit entry' : 'New entry'}
       </p>
 
@@ -102,7 +102,7 @@ export function JournalEntry() {
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         placeholder="Title"
-        className="mt-2 w-full border-none bg-transparent font-display text-3xl uppercase text-deep-indigo placeholder:text-deep-indigo/30 focus:outline-none"
+        className="mt-2 w-full border-none bg-transparent font-display text-2xl font-semibold text-ink-black placeholder:text-black/25 focus:outline-none"
       />
 
       <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto pb-1">
@@ -128,7 +128,7 @@ export function JournalEntry() {
           value={reference}
           onChange={(e) => setReference(e.target.value)}
           placeholder="e.g. John 3:16"
-          className="mt-1 w-full rounded-card border border-black/10 bg-pure-white px-3 py-2 font-label text-xs uppercase tracking-label text-burnt-orange placeholder:text-black/30 focus:outline-none"
+          className="mt-1 w-full rounded-card border border-black/10 bg-pure-white px-3 py-2 font-label text-xs uppercase tracking-label text-deep-indigo placeholder:text-black/30 focus:outline-none"
         />
       </label>
       {referenceQuote && (
@@ -169,7 +169,7 @@ export function JournalEntry() {
           <button
             type="button"
             onClick={handleAddTag}
-            className="font-label text-[10px] uppercase tracking-label text-burnt-orange"
+            className="font-label text-[10px] uppercase tracking-label text-deep-indigo"
           >
             Add
           </button>

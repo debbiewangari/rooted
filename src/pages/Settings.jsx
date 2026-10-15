@@ -44,8 +44,8 @@ export function Settings() {
 
   return (
     <div className="min-h-screen px-6 pt-10 pb-6">
-      <p className="font-label text-xs uppercase tracking-label text-deep-indigo">Settings</p>
-      <h1 className="font-display text-4xl uppercase text-deep-indigo">Backup &amp; Restore</h1>
+      <p className="font-label text-xs uppercase tracking-label text-black/40">Settings</p>
+      <h1 className="mt-1 font-display text-2xl font-semibold text-ink-black">Backup &amp; restore</h1>
       <p className="mt-2 font-body text-sm text-black/60">
         Rooted keeps everything on this device only. Export a backup file to keep your data safe, move it to another
         device, or restore it later.

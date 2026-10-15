@@ -89,10 +89,10 @@ export function ThemeDetail() {
 
       <div className="-mt-10 px-6">
         <Card>
-          <p className="font-display text-2xl text-deep-indigo">{theme.title}</p>
-          {theme.subtitle && <p className="mt-0.5 font-body text-sm italic text-black/60">{theme.subtitle}</p>}
+          <p className="font-display text-xl font-semibold text-ink-black">{theme.title}</p>
+          {theme.subtitle && <p className="mt-0.5 font-body text-sm text-black/60">{theme.subtitle}</p>}
           {theme.reference && (
-            <p className="mt-2 font-label text-[11px] uppercase tracking-label text-burnt-orange">
+            <p className="mt-2 font-label text-[11px] uppercase tracking-label text-deep-indigo">
               {theme.reference}
             </p>
           )}
@@ -111,7 +111,7 @@ export function ThemeDetail() {
         {passage && status === 'idle' && (
           <Card>
             <div className="flex items-baseline justify-between gap-3">
-              <p className="font-display text-lg uppercase text-deep-indigo">{passage.reference}</p>
+              <p className="font-display text-lg font-semibold text-ink-black">{passage.reference}</p>
               <p className="font-label text-[10px] uppercase tracking-label text-black/40 whitespace-nowrap">
                 {translationName}
               </p>

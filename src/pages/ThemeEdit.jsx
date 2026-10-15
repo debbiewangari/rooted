@@ -93,8 +93,8 @@ export function ThemeEdit() {
 
   return (
     <form onSubmit={handleSave} className="flex min-h-screen flex-col px-6 pt-10 pb-6">
-      <p className="font-label text-xs uppercase tracking-label text-deep-indigo">Edit</p>
-      <h1 className="font-display text-3xl uppercase text-deep-indigo">Theme details</h1>
+      <p className="font-label text-xs uppercase tracking-label text-black/40">Edit</p>
+      <h1 className="mt-1 font-display text-2xl font-semibold text-ink-black">Theme details</h1>
 
       <label className="mt-6 block">
         <span className="font-label text-[11px] uppercase tracking-label text-black/40">Cover image</span>
@@ -145,7 +145,7 @@ export function ThemeEdit() {
           value={reference}
           onChange={(e) => setReference(e.target.value)}
           placeholder="e.g. Psalm 23"
-          className="mt-1 w-full rounded-card border border-black/10 bg-pure-white px-3 py-2.5 font-body text-sm text-burnt-orange focus:outline-none"
+          className="mt-1 w-full rounded-card border border-black/10 bg-pure-white px-3 py-2.5 font-body text-sm text-ink-black focus:outline-none"
         />
       </label>
 
