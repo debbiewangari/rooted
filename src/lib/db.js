@@ -186,12 +186,26 @@ export async function createTheme({ title, subtitle, reference, imageBlob }) {
     id: makeId(),
     title: title.trim(),
     subtitle: subtitle?.trim() || '',
-    reference: reference.trim(),
+    reference: reference?.trim() || '',
     imageBlob: imageBlob || null,
     createdAt: Date.now(),
   }
   await db.put(THEMES_STORE, theme)
   return theme
+}
+
+export async function updateTheme(id, changes) {
+  const db = await getDb()
+  const existing = await db.get(THEMES_STORE, id)
+  if (!existing) throw new Error(`Theme ${id} not found`)
+  const updated = { ...existing, ...changes }
+  await db.put(THEMES_STORE, updated)
+  return updated
+}
+
+export async function deleteTheme(id) {
+  const db = await getDb()
+  await db.delete(THEMES_STORE, id)
 }
 
 export async function listCalendarEvents() {

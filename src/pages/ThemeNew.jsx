@@ -37,8 +37,8 @@ export function ThemeNew() {
 
   async function handleSave(e) {
     e.preventDefault()
-    if (!title.trim() || !reference.trim()) {
-      setError('Title and reference are required.')
+    if (!title.trim()) {
+      setError('Title is required.')
       return
     }
     setSaving(true)
@@ -84,7 +84,9 @@ export function ThemeNew() {
       </label>
 
       <label className="mt-4 block">
-        <span className="font-label text-[11px] uppercase tracking-label text-black/40">Scripture reference</span>
+        <span className="font-label text-[11px] uppercase tracking-label text-black/40">
+          Scripture reference (optional)
+        </span>
         <input
           value={reference}
           onChange={(e) => setReference(e.target.value)}

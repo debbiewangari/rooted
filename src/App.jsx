@@ -7,6 +7,7 @@ import { Bible } from './pages/Bible'
 import { Themes } from './pages/Themes'
 import { ThemeNew } from './pages/ThemeNew'
 import { ThemeDetail } from './pages/ThemeDetail'
+import { ThemeEdit } from './pages/ThemeEdit'
 import { CalendarDay } from './pages/CalendarDay'
 import { CalendarPage } from './pages/CalendarPage'
 import { EventDetail } from './pages/EventDetail'
@@ -27,6 +28,7 @@ export default function App() {
         <Route path="/themes" element={<Themes />} />
         <Route path="/themes/new" element={<ThemeNew />} />
         <Route path="/themes/:id" element={<ThemeDetail />} />
+        <Route path="/themes/:id/edit" element={<ThemeEdit />} />
         <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/calendar/:date" element={<CalendarDay />} />
         <Route path="/events" element={<Events />} />

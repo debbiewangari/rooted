@@ -31,6 +31,11 @@ export function ThemeDetail() {
         setImageUrl(url)
       }
 
+      if (!row.reference) {
+        setStatus('no-reference')
+        return
+      }
+
       const translation = localStorage.getItem(TRANSLATION_KEY) || DEFAULT_TRANSLATION
       fetchPassage(row.reference, translation)
         .then(({ data }) => {
@@ -74,21 +79,34 @@ export function ThemeDetail() {
         >
           ←
         </Link>
+        <Link
+          to={`/themes/${id}/edit`}
+          className="absolute right-4 top-4 rounded-pill bg-pure-white/90 px-4 py-2 font-label text-[11px] uppercase tracking-label text-deep-indigo"
+        >
+          Edit
+        </Link>
       </div>
 
       <div className="-mt-10 px-6">
         <Card>
           <p className="font-display text-2xl text-deep-indigo">{theme.title}</p>
           {theme.subtitle && <p className="mt-0.5 font-body text-sm italic text-black/60">{theme.subtitle}</p>}
-          <p className="mt-2 font-label text-[11px] uppercase tracking-label text-burnt-orange">
-            {theme.reference}
-          </p>
+          {theme.reference && (
+            <p className="mt-2 font-label text-[11px] uppercase tracking-label text-burnt-orange">
+              {theme.reference}
+            </p>
+          )}
         </Card>
       </div>
 
       <div className="mt-6 px-6">
         {status === 'loading' && <p className="font-body text-sm text-black/50">Loading passage…</p>}
         {status === 'error' && <p className="font-body text-sm text-burnt-orange">{error}</p>}
+        {status === 'no-reference' && (
+          <p className="font-body text-sm text-black/50">
+            No scripture reference set — tap Edit to add one.
+          </p>
+        )}
 
         {passage && status === 'idle' && (
           <Card>
