@@ -1,7 +1,7 @@
 import { Route, Routes } from 'react-router-dom'
 import { NavBar } from './components/NavBar'
 import { Home } from './pages/Home'
-import { Journal } from './pages/Journal'
+import { Library } from './pages/Library'
 import { JournalEntry } from './pages/JournalEntry'
 import { Bible } from './pages/Bible'
 import { Themes } from './pages/Themes'
@@ -20,7 +20,7 @@ export default function App() {
     <div className="min-h-screen bg-cream-paper pb-20">
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/journal" element={<Journal />} />
+        <Route path="/journal" element={<Library />} />
         <Route path="/journal/new" element={<JournalEntry />} />
         <Route path="/journal/:id" element={<JournalEntry />} />
         <Route path="/bible" element={<Bible />} />

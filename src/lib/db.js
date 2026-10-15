@@ -1,7 +1,7 @@
 import { openDB } from 'idb'
 
 const DB_NAME = 'rooted'
-const DB_VERSION = 7
+const DB_VERSION = 8
 const ENTRIES_STORE = 'journalEntries'
 const PASSAGES_STORE = 'bibleCache'
 const HIGHLIGHTS_STORE = 'highlights'
@@ -9,6 +9,7 @@ const THEMES_STORE = 'themes'
 const EVENTS_STORE = 'calendarEvents'
 const EVENT_NOTES_STORE = 'eventNotes'
 const PRAYER_CARDS_STORE = 'prayerCards'
+const LIBRARY_TAGS_STORE = 'libraryTags'
 
 function getDb() {
   return openDB(DB_NAME, DB_VERSION, {
@@ -48,6 +49,11 @@ function getDb() {
         const prayerCards = db.createObjectStore(PRAYER_CARDS_STORE, { keyPath: 'id' })
         prayerCards.createIndex('by-eventId', 'eventId')
       }
+      if (!db.objectStoreNames.contains(LIBRARY_TAGS_STORE)) {
+        // topical tags (e.g. "Provision") that cross-link Library items of
+        // any type — separate from the Themes feature's scripture cards.
+        db.createObjectStore(LIBRARY_TAGS_STORE, { keyPath: 'id' })
+      }
     },
   })
 }
@@ -70,7 +76,7 @@ export async function getEntry(id) {
   return db.get(ENTRIES_STORE, id)
 }
 
-export async function createEntry({ title, body, reference }) {
+export async function createEntry({ title, body, reference, type, tags }) {
   const db = await getDb()
   const now = Date.now()
   const entry = {
@@ -78,6 +84,8 @@ export async function createEntry({ title, body, reference }) {
     title: title?.trim() || 'Untitled',
     body: body || '',
     reference: reference || null,
+    type: type || 'reflection',
+    tags: Array.isArray(tags) ? tags : [],
     createdAt: now,
     updatedAt: now,
     synced: false,
@@ -104,6 +112,29 @@ export async function updateEntry(id, changes) {
 export async function deleteEntry(id) {
   const db = await getDb()
   await db.delete(ENTRIES_STORE, id)
+}
+
+export async function listTags() {
+  const db = await getDb()
+  const rows = await db.getAll(LIBRARY_TAGS_STORE)
+  return rows.sort((a, b) => a.name.localeCompare(b.name))
+}
+
+export async function createTag(name) {
+  const db = await getDb()
+  const trimmed = name.trim()
+  const existing = (await db.getAll(LIBRARY_TAGS_STORE)).find(
+    (t) => t.name.toLowerCase() === trimmed.toLowerCase(),
+  )
+  if (existing) return existing
+  const tag = { id: makeId(), name: trimmed, createdAt: Date.now() }
+  await db.put(LIBRARY_TAGS_STORE, tag)
+  return tag
+}
+
+export async function deleteTag(id) {
+  const db = await getDb()
+  await db.delete(LIBRARY_TAGS_STORE, id)
 }
 
 export async function cachePassage(reference, data) {
@@ -299,13 +330,14 @@ async function base64ToBlob(dataUrl) {
 // whole backup is a single portable JSON file.
 export async function exportAllData() {
   const db = await getDb()
-  const [entries, highlights, themesRaw, eventsRaw, eventNotes, prayerCards] = await Promise.all([
+  const [entries, highlights, themesRaw, eventsRaw, eventNotes, prayerCards, libraryTags] = await Promise.all([
     db.getAll(ENTRIES_STORE),
     db.getAll(HIGHLIGHTS_STORE),
     db.getAll(THEMES_STORE),
     db.getAll(EVENTS_STORE),
     db.getAll(EVENT_NOTES_STORE),
     db.getAll(PRAYER_CARDS_STORE),
+    db.getAll(LIBRARY_TAGS_STORE),
   ])
 
   const themes = await Promise.all(
@@ -325,6 +357,7 @@ export async function exportAllData() {
     calendarEvents,
     eventNotes,
     prayerCards,
+    libraryTags,
   }
 }
 
@@ -348,4 +381,5 @@ export async function importAllData(data) {
   await restoreRows(db, EVENTS_STORE, data.calendarEvents || [], ['coverImage'])
   await restoreRows(db, EVENT_NOTES_STORE, data.eventNotes || [])
   await restoreRows(db, PRAYER_CARDS_STORE, data.prayerCards || [])
+  await restoreRows(db, LIBRARY_TAGS_STORE, data.libraryTags || [])
 }
