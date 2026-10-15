@@ -18,25 +18,16 @@ export function EventDetail() {
 
   const [event, setEvent] = useState(null)
   const [notFound, setNotFound] = useState(false)
-  const [coverUrl, setCoverUrl] = useState(null)
   const [anchorQuote, setAnchorQuote] = useState('')
 
   useEffect(() => {
-    let url = null
     getCalendarEvent(id).then((row) => {
       if (!row) {
         setNotFound(true)
         return
       }
       setEvent(row)
-      if (row.coverImage) {
-        url = URL.createObjectURL(row.coverImage)
-        setCoverUrl(url)
-      }
     })
-    return () => {
-      if (url) URL.revokeObjectURL(url)
-    }
   }, [id])
 
   useEffect(() => {
@@ -70,8 +61,8 @@ export function EventDetail() {
   return (
     <div className="min-h-screen pb-6">
       <div className="relative h-64 w-full overflow-hidden bg-warm-sand">
-        {coverUrl ? (
-          <img src={coverUrl} alt="" className="h-full w-full object-cover" />
+        {event.coverImageUrl ? (
+          <img src={event.coverImageUrl} alt="" className="h-full w-full object-cover" />
         ) : (
           <div className="flex h-full items-center justify-center">
             <BotanicalSprig className="h-20 w-20 opacity-50" color="var(--color-deep-indigo)" />

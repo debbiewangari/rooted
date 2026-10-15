@@ -13,8 +13,10 @@ export function ThemeEdit() {
   const [title, setTitle] = useState('')
   const [subtitle, setSubtitle] = useState('')
   const [reference, setReference] = useState('')
-  const [imageBlob, setImageBlob] = useState(null)
-  const [previewUrl, setPreviewUrl] = useState(null)
+  const [existingImageUrl, setExistingImageUrl] = useState(null)
+  const [newImageBlob, setNewImageBlob] = useState(null)
+  const [localPreviewUrl, setLocalPreviewUrl] = useState(null)
+  const [imageRemoved, setImageRemoved] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -27,10 +29,7 @@ export function ThemeEdit() {
       setTitle(row.title)
       setSubtitle(row.subtitle || '')
       setReference(row.reference || '')
-      if (row.imageBlob) {
-        setImageBlob(row.imageBlob)
-        setPreviewUrl(URL.createObjectURL(row.imageBlob))
-      }
+      setExistingImageUrl(row.imageUrl || null)
       setLoading(false)
     })
   }, [id])
@@ -41,9 +40,11 @@ export function ThemeEdit() {
 
   useEffect(() => {
     return () => {
-      if (previewUrl) URL.revokeObjectURL(previewUrl)
+      if (localPreviewUrl) URL.revokeObjectURL(localPreviewUrl)
     }
-  }, [previewUrl])
+  }, [localPreviewUrl])
+
+  const previewUrl = localPreviewUrl || (!imageRemoved ? existingImageUrl : null)
 
   async function handleImageChange(e) {
     const file = e.target.files?.[0]
@@ -51,18 +52,20 @@ export function ThemeEdit() {
     setError('')
     try {
       const resized = await resizeImage(file)
-      if (previewUrl) URL.revokeObjectURL(previewUrl)
-      setImageBlob(resized)
-      setPreviewUrl(URL.createObjectURL(resized))
+      if (localPreviewUrl) URL.revokeObjectURL(localPreviewUrl)
+      setNewImageBlob(resized)
+      setLocalPreviewUrl(URL.createObjectURL(resized))
+      setImageRemoved(false)
     } catch {
       setError('Could not use that image — try a different file.')
     }
   }
 
   function handleRemoveImage() {
-    if (previewUrl) URL.revokeObjectURL(previewUrl)
-    setImageBlob(null)
-    setPreviewUrl(null)
+    if (localPreviewUrl) URL.revokeObjectURL(localPreviewUrl)
+    setNewImageBlob(null)
+    setLocalPreviewUrl(null)
+    setImageRemoved(true)
   }
 
   async function handleSave(e) {
@@ -76,7 +79,8 @@ export function ThemeEdit() {
       title: title.trim(),
       subtitle: subtitle.trim(),
       reference: reference.trim(),
-      imageBlob,
+      imageBlob: newImageBlob,
+      removeImage: imageRemoved,
     })
     navigate(`/themes/${id}`)
   }

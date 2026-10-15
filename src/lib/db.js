@@ -1,216 +1,236 @@
-import { openDB } from 'idb'
+import { supabase } from './supabase'
 
-const DB_NAME = 'rooted'
-const DB_VERSION = 8
-const ENTRIES_STORE = 'journalEntries'
-const PASSAGES_STORE = 'bibleCache'
-const HIGHLIGHTS_STORE = 'highlights'
-const THEMES_STORE = 'themes'
-const EVENTS_STORE = 'calendarEvents'
-const EVENT_NOTES_STORE = 'eventNotes'
-const PRAYER_CARDS_STORE = 'prayerCards'
-const LIBRARY_TAGS_STORE = 'libraryTags'
-
-function getDb() {
-  return openDB(DB_NAME, DB_VERSION, {
-    // Every store creation is guarded by `contains()` rather than relying
-    // purely on oldVersion, so a dev-mode HMR reload that marked the DB at
-    // a given version without finishing its upgrade can't permanently strand
-    // a missing store — bumping DB_VERSION always re-runs this and fills gaps.
-    upgrade(db) {
-      if (!db.objectStoreNames.contains(ENTRIES_STORE)) {
-        const entries = db.createObjectStore(ENTRIES_STORE, { keyPath: 'id' })
-        entries.createIndex('by-updatedAt', 'updatedAt')
-      }
-      if (!db.objectStoreNames.contains(PASSAGES_STORE)) {
-        db.createObjectStore(PASSAGES_STORE, { keyPath: 'reference' })
-      }
-      if (!db.objectStoreNames.contains(HIGHLIGHTS_STORE)) {
-        // keyed by `${book_id}:${chapter}:${verse}` so a highlight survives
-        // switching translations, since the verse identity doesn't change.
-        db.createObjectStore(HIGHLIGHTS_STORE, { keyPath: 'id' })
-      }
-      if (!db.objectStoreNames.contains(THEMES_STORE)) {
-        const themes = db.createObjectStore(THEMES_STORE, { keyPath: 'id' })
-        themes.createIndex('by-createdAt', 'createdAt')
-      }
-      if (!db.objectStoreNames.contains(EVENTS_STORE)) {
-        const events = db.createObjectStore(EVENTS_STORE, { keyPath: 'id' })
-        events.createIndex('by-startDate', 'startDate')
-      }
-      if (!db.objectStoreNames.contains(EVENT_NOTES_STORE)) {
-        // keyed by `${eventId}:${date}` so each day of a challenge holds one note
-        const eventNotes = db.createObjectStore(EVENT_NOTES_STORE, { keyPath: 'id' })
-        eventNotes.createIndex('by-eventId', 'eventId')
-      }
-      if (!db.objectStoreNames.contains(PRAYER_CARDS_STORE)) {
-        // standing prayer lists for an event (e.g. "Prayer Requests"), not
-        // tied to any single day of the challenge
-        const prayerCards = db.createObjectStore(PRAYER_CARDS_STORE, { keyPath: 'id' })
-        prayerCards.createIndex('by-eventId', 'eventId')
-      }
-      if (!db.objectStoreNames.contains(LIBRARY_TAGS_STORE)) {
-        // topical tags (e.g. "Provision") that cross-link Library items of
-        // any type — separate from the Themes feature's scripture cards.
-        db.createObjectStore(LIBRARY_TAGS_STORE, { keyPath: 'id' })
-      }
-    },
-  })
-}
+const COVERS_BUCKET = 'covers'
 
 function makeId() {
   return crypto.randomUUID()
 }
 
-// Journal entries are modeled to be sync-ready: `synced` and `remoteId`
-// stay null until a backend exists, so a future sync layer can diff on them
-// without migrating existing local data.
+async function getUserId() {
+  const { data, error } = await supabase.auth.getUser()
+  if (error) throw error
+  return data.user.id
+}
+
+function toMs(iso) {
+  return iso ? new Date(iso).getTime() : null
+}
+
+function publicCoverUrl(path) {
+  if (!path) return null
+  const { data } = supabase.storage.from(COVERS_BUCKET).getPublicUrl(path)
+  return data.publicUrl
+}
+
+async function uploadCover(path, blob) {
+  const { error } = await supabase.storage
+    .from(COVERS_BUCKET)
+    .upload(path, blob, { contentType: blob.type || 'image/jpeg', upsert: true })
+  if (error) throw error
+}
+
+async function removeCover(path) {
+  if (!path) return
+  await supabase.storage.from(COVERS_BUCKET).remove([path])
+}
+
+// Journal / Library entries -------------------------------------------------
+function fromEntryRow(row) {
+  return {
+    id: row.id,
+    title: row.title,
+    sections: row.sections || [],
+    reference: row.reference,
+    type: row.type,
+    tags: row.tags || [],
+    createdAt: toMs(row.created_at),
+    updatedAt: toMs(row.updated_at),
+  }
+}
+
 export async function listEntries() {
-  const db = await getDb()
-  const entries = await db.getAllFromIndex(ENTRIES_STORE, 'by-updatedAt')
-  return entries.sort((a, b) => b.updatedAt - a.updatedAt)
+  const { data, error } = await supabase.from('journal_entries').select('*').order('updated_at', { ascending: false })
+  if (error) throw error
+  return data.map(fromEntryRow)
 }
 
 export async function getEntry(id) {
-  const db = await getDb()
-  return db.get(ENTRIES_STORE, id)
+  const { data, error } = await supabase.from('journal_entries').select('*').eq('id', id).maybeSingle()
+  if (error) throw error
+  return data ? fromEntryRow(data) : null
 }
 
-export async function createEntry({ title, body, reference, type, tags, sections }) {
-  const db = await getDb()
-  const now = Date.now()
-  const entry = {
-    id: makeId(),
-    title: title?.trim() || 'Untitled',
-    body: body || '',
-    sections: Array.isArray(sections) ? sections : [],
-    reference: reference || null,
-    type: type || 'reflection',
-    tags: Array.isArray(tags) ? tags : [],
-    createdAt: now,
-    updatedAt: now,
-    synced: false,
-    remoteId: null,
-  }
-  await db.put(ENTRIES_STORE, entry)
-  return entry
+export async function createEntry({ title, reference, type, tags, sections }) {
+  const userId = await getUserId()
+  const { data, error } = await supabase
+    .from('journal_entries')
+    .insert({
+      user_id: userId,
+      title: title?.trim() || 'Untitled',
+      sections: Array.isArray(sections) ? sections : [],
+      reference: reference || null,
+      type: type || 'reflection',
+      tags: Array.isArray(tags) ? tags : [],
+    })
+    .select()
+    .single()
+  if (error) throw error
+  return fromEntryRow(data)
 }
 
 export async function updateEntry(id, changes) {
-  const db = await getDb()
-  const existing = await db.get(ENTRIES_STORE, id)
-  if (!existing) throw new Error(`Entry ${id} not found`)
-  const updated = {
-    ...existing,
-    ...changes,
-    updatedAt: Date.now(),
-    synced: false,
-  }
-  await db.put(ENTRIES_STORE, updated)
-  return updated
+  const payload = { updated_at: new Date().toISOString() }
+  if (changes.title !== undefined) payload.title = changes.title?.trim() || 'Untitled'
+  if (changes.sections !== undefined) payload.sections = changes.sections
+  if (changes.reference !== undefined) payload.reference = changes.reference || null
+  if (changes.type !== undefined) payload.type = changes.type
+  if (changes.tags !== undefined) payload.tags = changes.tags
+
+  const { data, error } = await supabase.from('journal_entries').update(payload).eq('id', id).select().single()
+  if (error) throw error
+  return fromEntryRow(data)
 }
 
 export async function deleteEntry(id) {
-  const db = await getDb()
-  await db.delete(ENTRIES_STORE, id)
+  const { error } = await supabase.from('journal_entries').delete().eq('id', id)
+  if (error) throw error
 }
 
+// Library tags ----------------------------------------------------------
 export async function listTags() {
-  const db = await getDb()
-  const rows = await db.getAll(LIBRARY_TAGS_STORE)
-  return rows.sort((a, b) => a.name.localeCompare(b.name))
+  const { data, error } = await supabase.from('library_tags').select('*').order('name')
+  if (error) throw error
+  return data.map((row) => ({ id: row.id, name: row.name, createdAt: toMs(row.created_at) }))
 }
 
 export async function createTag(name) {
-  const db = await getDb()
   const trimmed = name.trim()
-  const existing = (await db.getAll(LIBRARY_TAGS_STORE)).find(
-    (t) => t.name.toLowerCase() === trimmed.toLowerCase(),
-  )
-  if (existing) return existing
-  const tag = { id: makeId(), name: trimmed, createdAt: Date.now() }
-  await db.put(LIBRARY_TAGS_STORE, tag)
-  return tag
+  const existing = await listTags()
+  const match = existing.find((t) => t.name.toLowerCase() === trimmed.toLowerCase())
+  if (match) return match
+
+  const userId = await getUserId()
+  const { data, error } = await supabase
+    .from('library_tags')
+    .insert({ user_id: userId, name: trimmed })
+    .select()
+    .single()
+  if (error) throw error
+  return { id: data.id, name: data.name, createdAt: toMs(data.created_at) }
 }
 
 export async function deleteTag(id) {
-  const db = await getDb()
-  await db.delete(LIBRARY_TAGS_STORE, id)
+  const { error } = await supabase.from('library_tags').delete().eq('id', id)
+  if (error) throw error
 }
 
-export async function cachePassage(reference, data) {
-  const db = await getDb()
-  await db.put(PASSAGES_STORE, { reference, data, cachedAt: Date.now() })
-}
-
-export async function getCachedPassage(reference) {
-  const db = await getDb()
-  const row = await db.get(PASSAGES_STORE, reference)
-  return row?.data ?? null
-}
-
-export async function listCachedPassages() {
-  const db = await getDb()
-  const rows = await db.getAll(PASSAGES_STORE)
-  return rows.sort((a, b) => b.cachedAt - a.cachedAt)
-}
-
-export async function setHighlight(id, { color, reference, text }) {
-  const db = await getDb()
-  await db.put(HIGHLIGHTS_STORE, { id, color, reference, text, updatedAt: Date.now() })
-}
-
-export async function removeHighlight(id) {
-  const db = await getDb()
-  await db.delete(HIGHLIGHTS_STORE, id)
-}
-
-export async function listHighlights() {
-  const db = await getDb()
-  return db.getAll(HIGHLIGHTS_STORE)
+// Themes ------------------------------------------------------------------
+function fromThemeRow(row) {
+  return {
+    id: row.id,
+    title: row.title,
+    subtitle: row.subtitle || '',
+    reference: row.reference || '',
+    imageUrl: publicCoverUrl(row.image_path),
+    createdAt: toMs(row.created_at),
+  }
 }
 
 export async function listThemes() {
-  const db = await getDb()
-  return db.getAllFromIndex(THEMES_STORE, 'by-createdAt')
+  const { data, error } = await supabase.from('themes').select('*').order('created_at', { ascending: true })
+  if (error) throw error
+  return data.map(fromThemeRow)
 }
 
 export async function getTheme(id) {
-  const db = await getDb()
-  return db.get(THEMES_STORE, id)
+  const { data, error } = await supabase.from('themes').select('*').eq('id', id).maybeSingle()
+  if (error) throw error
+  return data ? fromThemeRow(data) : null
 }
 
 export async function createTheme({ title, subtitle, reference, imageBlob }) {
-  const db = await getDb()
-  const theme = {
-    id: makeId(),
-    title: title.trim(),
-    subtitle: subtitle?.trim() || '',
-    reference: reference?.trim() || '',
-    imageBlob: imageBlob || null,
-    createdAt: Date.now(),
+  const userId = await getUserId()
+  const id = makeId()
+  let imagePath = null
+  if (imageBlob) {
+    imagePath = `${userId}/theme-${id}.jpg`
+    await uploadCover(imagePath, imageBlob)
   }
-  await db.put(THEMES_STORE, theme)
-  return theme
+  const { data, error } = await supabase
+    .from('themes')
+    .insert({
+      id,
+      user_id: userId,
+      title: title.trim(),
+      subtitle: subtitle?.trim() || '',
+      reference: reference?.trim() || '',
+      image_path: imagePath,
+    })
+    .select()
+    .single()
+  if (error) throw error
+  return fromThemeRow(data)
 }
 
-export async function updateTheme(id, changes) {
-  const db = await getDb()
-  const existing = await db.get(THEMES_STORE, id)
-  if (!existing) throw new Error(`Theme ${id} not found`)
-  const updated = { ...existing, ...changes }
-  await db.put(THEMES_STORE, updated)
-  return updated
+// `imageBlob` (a freshly picked file) replaces the cover; `removeImage`
+// clears it; omitting both leaves the existing cover untouched.
+export async function updateTheme(id, { title, subtitle, reference, imageBlob, removeImage }) {
+  const userId = await getUserId()
+  const payload = {}
+  if (title !== undefined) payload.title = title.trim()
+  if (subtitle !== undefined) payload.subtitle = subtitle?.trim() || ''
+  if (reference !== undefined) payload.reference = reference?.trim() || ''
+
+  if (imageBlob) {
+    const imagePath = `${userId}/theme-${id}.jpg`
+    await uploadCover(imagePath, imageBlob)
+    payload.image_path = imagePath
+  } else if (removeImage) {
+    const { data: row } = await supabase.from('themes').select('image_path').eq('id', id).maybeSingle()
+    await removeCover(row?.image_path)
+    payload.image_path = null
+  }
+
+  const { data, error } = await supabase.from('themes').update(payload).eq('id', id).select().single()
+  if (error) throw error
+  return fromThemeRow(data)
 }
 
 export async function deleteTheme(id) {
-  const db = await getDb()
-  await db.delete(THEMES_STORE, id)
+  const { data: row } = await supabase.from('themes').select('image_path').eq('id', id).maybeSingle()
+  if (row?.image_path) await removeCover(row.image_path)
+  const { error } = await supabase.from('themes').delete().eq('id', id)
+  if (error) throw error
+}
+
+// Calendar events -----------------------------------------------------------
+function fromEventRow(row) {
+  return {
+    id: row.id,
+    title: row.title,
+    notes: row.notes || '',
+    category: row.category,
+    customCategory: row.custom_category || '',
+    startDate: row.start_date,
+    endDate: row.end_date,
+    anchorVerse: row.anchor_verse || '',
+    time: row.time || '',
+    theme: row.theme || '',
+    coverImageUrl: publicCoverUrl(row.cover_image_path),
+    createdAt: toMs(row.created_at),
+  }
 }
 
 export async function listCalendarEvents() {
-  const db = await getDb()
-  return db.getAllFromIndex(EVENTS_STORE, 'by-startDate')
+  const { data, error } = await supabase.from('calendar_events').select('*').order('start_date')
+  if (error) throw error
+  return data.map(fromEventRow)
+}
+
+export async function getCalendarEvent(id) {
+  const { data, error } = await supabase.from('calendar_events').select('*').eq('id', id).maybeSingle()
+  if (error) throw error
+  return data ? fromEventRow(data) : null
 }
 
 export async function createCalendarEvent({
@@ -225,105 +245,209 @@ export async function createCalendarEvent({
   theme,
   coverImage,
 }) {
-  const db = await getDb()
-  const event = {
-    id: makeId(),
-    title: title.trim(),
-    notes: notes?.trim() || '',
-    category: category || 'event',
-    customCategory: category === 'other' ? customCategory?.trim() || '' : '',
-    startDate,
-    endDate: endDate && endDate >= startDate ? endDate : startDate,
-    anchorVerse: anchorVerse?.trim() || '',
-    time: time || '',
-    theme: theme?.trim() || '',
-    coverImage: coverImage || null,
-    createdAt: Date.now(),
+  const userId = await getUserId()
+  const id = makeId()
+  let coverPath = null
+  if (coverImage) {
+    coverPath = `${userId}/event-${id}.jpg`
+    await uploadCover(coverPath, coverImage)
   }
-  await db.put(EVENTS_STORE, event)
-  return event
+  const { data, error } = await supabase
+    .from('calendar_events')
+    .insert({
+      id,
+      user_id: userId,
+      title: title.trim(),
+      notes: notes?.trim() || '',
+      category: category || 'event',
+      custom_category: category === 'other' ? customCategory?.trim() || '' : '',
+      start_date: startDate,
+      end_date: endDate && endDate >= startDate ? endDate : startDate,
+      anchor_verse: anchorVerse?.trim() || '',
+      time: time || '',
+      theme: theme?.trim() || '',
+      cover_image_path: coverPath,
+    })
+    .select()
+    .single()
+  if (error) throw error
+  return fromEventRow(data)
 }
 
+// `coverImage` (a freshly picked file) replaces the cover; `removeImage`
+// clears it; omitting both leaves the existing cover untouched.
 export async function updateCalendarEvent(id, changes) {
-  const db = await getDb()
-  const existing = await db.get(EVENTS_STORE, id)
-  if (!existing) throw new Error(`Event ${id} not found`)
-  const updated = { ...existing, ...changes }
-  if (updated.endDate < updated.startDate) updated.endDate = updated.startDate
-  await db.put(EVENTS_STORE, updated)
-  return updated
+  const userId = await getUserId()
+  const payload = {}
+  if (changes.title !== undefined) payload.title = changes.title.trim()
+  if (changes.notes !== undefined) payload.notes = changes.notes?.trim() || ''
+  if (changes.category !== undefined) payload.category = changes.category || 'event'
+  if (changes.category !== undefined || changes.customCategory !== undefined) {
+    payload.custom_category = changes.category === 'other' ? changes.customCategory?.trim() || '' : ''
+  }
+  if (changes.startDate !== undefined) payload.start_date = changes.startDate
+  if (changes.endDate !== undefined) payload.end_date = changes.endDate
+  if (payload.start_date && payload.end_date && payload.end_date < payload.start_date) {
+    payload.end_date = payload.start_date
+  }
+  if (changes.anchorVerse !== undefined) payload.anchor_verse = changes.anchorVerse?.trim() || ''
+  if (changes.time !== undefined) payload.time = changes.time || ''
+  if (changes.theme !== undefined) payload.theme = changes.theme?.trim() || ''
+
+  if (changes.coverImage) {
+    const coverPath = `${userId}/event-${id}.jpg`
+    await uploadCover(coverPath, changes.coverImage)
+    payload.cover_image_path = coverPath
+  } else if (changes.removeImage) {
+    const { data: row } = await supabase.from('calendar_events').select('cover_image_path').eq('id', id).maybeSingle()
+    await removeCover(row?.cover_image_path)
+    payload.cover_image_path = null
+  }
+
+  const { data, error } = await supabase.from('calendar_events').update(payload).eq('id', id).select().single()
+  if (error) throw error
+  return fromEventRow(data)
 }
 
 export async function deleteCalendarEvent(id) {
-  const db = await getDb()
-  await db.delete(EVENTS_STORE, id)
+  const { data: row } = await supabase.from('calendar_events').select('cover_image_path').eq('id', id).maybeSingle()
+  if (row?.cover_image_path) await removeCover(row.cover_image_path)
+  const { error } = await supabase.from('calendar_events').delete().eq('id', id)
+  if (error) throw error
 }
 
-export async function getCalendarEvent(id) {
-  const db = await getDb()
-  return db.get(EVENTS_STORE, id)
+// Per-day event notes ---------------------------------------------------
+function fromEventNoteRow(row) {
+  return {
+    eventId: row.event_id,
+    date: row.date,
+    focus: row.focus || '',
+    minister: row.minister || '',
+    verses: row.verses || [],
+    notes: row.notes || '',
+    prayerPoints: row.prayer_points || '',
+    updatedAt: toMs(row.updated_at),
+  }
 }
 
 export async function getEventNote(eventId, date) {
-  const db = await getDb()
-  return db.get(EVENT_NOTES_STORE, `${eventId}:${date}`)
+  const { data, error } = await supabase
+    .from('event_notes')
+    .select('*')
+    .eq('event_id', eventId)
+    .eq('date', date)
+    .maybeSingle()
+  if (error) throw error
+  return data ? fromEventNoteRow(data) : null
 }
 
 export async function setEventNote(eventId, date, { focus, minister, verses, notes, prayerPoints }) {
-  const db = await getDb()
-  await db.put(EVENT_NOTES_STORE, {
-    id: `${eventId}:${date}`,
-    eventId,
-    date,
-    focus: focus || '',
-    minister: minister || '',
-    verses: Array.isArray(verses) ? verses : [],
-    notes: notes || '',
-    prayerPoints: prayerPoints || '',
-    updatedAt: Date.now(),
-  })
+  const userId = await getUserId()
+  const { error } = await supabase.from('event_notes').upsert(
+    {
+      user_id: userId,
+      event_id: eventId,
+      date,
+      focus: focus || '',
+      minister: minister || '',
+      verses: Array.isArray(verses) ? verses : [],
+      notes: notes || '',
+      prayer_points: prayerPoints || '',
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'event_id,date' },
+  )
+  if (error) throw error
 }
 
 export async function listEventNotes(eventId) {
-  const db = await getDb()
-  return db.getAllFromIndex(EVENT_NOTES_STORE, 'by-eventId', eventId)
+  const { data, error } = await supabase.from('event_notes').select('*').eq('event_id', eventId)
+  if (error) throw error
+  return data.map(fromEventNoteRow)
+}
+
+// Standing prayer lists -------------------------------------------------
+function fromPrayerCardRow(row) {
+  return { id: row.id, eventId: row.event_id, title: row.title, items: row.items || [], createdAt: toMs(row.created_at) }
 }
 
 export async function listPrayerCards(eventId) {
-  const db = await getDb()
-  return db.getAllFromIndex(PRAYER_CARDS_STORE, 'by-eventId', eventId)
+  const { data, error } = await supabase.from('prayer_cards').select('*').eq('event_id', eventId).order('created_at')
+  if (error) throw error
+  return data.map(fromPrayerCardRow)
 }
 
 export async function createPrayerCard(eventId, title) {
-  const db = await getDb()
-  const card = { id: makeId(), eventId, title: title.trim(), items: [], createdAt: Date.now() }
-  await db.put(PRAYER_CARDS_STORE, card)
-  return card
+  const userId = await getUserId()
+  const { data, error } = await supabase
+    .from('prayer_cards')
+    .insert({ user_id: userId, event_id: eventId, title: title.trim(), items: [] })
+    .select()
+    .single()
+  if (error) throw error
+  return fromPrayerCardRow(data)
 }
 
 export async function addPrayerItem(cardId, text) {
-  const db = await getDb()
-  const card = await db.get(PRAYER_CARDS_STORE, cardId)
+  const { data: card, error: fetchError } = await supabase
+    .from('prayer_cards')
+    .select('*')
+    .eq('id', cardId)
+    .maybeSingle()
+  if (fetchError) throw fetchError
   if (!card) throw new Error(`Prayer card ${cardId} not found`)
-  const updated = { ...card, items: [...card.items, { id: makeId(), text: text.trim() }] }
-  await db.put(PRAYER_CARDS_STORE, updated)
-  return updated
+  const items = [...(card.items || []), { id: makeId(), text: text.trim() }]
+  const { data, error } = await supabase.from('prayer_cards').update({ items }).eq('id', cardId).select().single()
+  if (error) throw error
+  return fromPrayerCardRow(data)
 }
 
 export async function removePrayerItem(cardId, itemId) {
-  const db = await getDb()
-  const card = await db.get(PRAYER_CARDS_STORE, cardId)
+  const { data: card, error: fetchError } = await supabase
+    .from('prayer_cards')
+    .select('*')
+    .eq('id', cardId)
+    .maybeSingle()
+  if (fetchError) throw fetchError
   if (!card) return
-  const updated = { ...card, items: card.items.filter((item) => item.id !== itemId) }
-  await db.put(PRAYER_CARDS_STORE, updated)
-  return updated
+  const items = (card.items || []).filter((item) => item.id !== itemId)
+  const { data, error } = await supabase.from('prayer_cards').update({ items }).eq('id', cardId).select().single()
+  if (error) throw error
+  return fromPrayerCardRow(data)
 }
 
 export async function deletePrayerCard(cardId) {
-  const db = await getDb()
-  await db.delete(PRAYER_CARDS_STORE, cardId)
+  const { error } = await supabase.from('prayer_cards').delete().eq('id', cardId)
+  if (error) throw error
 }
 
+// Verse highlights --------------------------------------------------------
+export async function setHighlight(id, { color, reference, text }) {
+  const userId = await getUserId()
+  const { error } = await supabase
+    .from('highlights')
+    .upsert({ id, user_id: userId, color, reference, text, updated_at: new Date().toISOString() }, { onConflict: 'user_id,id' })
+  if (error) throw error
+}
+
+export async function removeHighlight(id) {
+  const { error } = await supabase.from('highlights').delete().eq('id', id)
+  if (error) throw error
+}
+
+export async function listHighlights() {
+  const { data, error } = await supabase.from('highlights').select('*')
+  if (error) throw error
+  return data.map((row) => ({
+    id: row.id,
+    color: row.color,
+    reference: row.reference,
+    text: row.text,
+    updatedAt: toMs(row.updated_at),
+  }))
+}
+
+// Backup / restore + local-data migration ----------------------------------
 function blobToBase64(blob) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -333,68 +457,162 @@ function blobToBase64(blob) {
   })
 }
 
+async function urlToBase64(url) {
+  const res = await fetch(url)
+  const blob = await res.blob()
+  return blobToBase64(blob)
+}
+
 async function base64ToBlob(dataUrl) {
   const res = await fetch(dataUrl)
   return res.blob()
 }
 
-// Journal entries, highlights, themes, calendar events (with day notes and
-// standing prayer lists) — everything a person actually authored. The Bible
-// passage cache is skipped since it's just regenerable API responses, not
-// content. Blobs (theme/event cover images) are inlined as base64 so the
-// whole backup is a single portable JSON file.
+// Everything a person authored, in the same portable shape the old
+// IndexedDB-only version used — so a backup file (or the legacy local data)
+// can round-trip into this account. Cover images are inlined as base64.
 export async function exportAllData() {
-  const db = await getDb()
-  const [entries, highlights, themesRaw, eventsRaw, eventNotes, prayerCards, libraryTags] = await Promise.all([
-    db.getAll(ENTRIES_STORE),
-    db.getAll(HIGHLIGHTS_STORE),
-    db.getAll(THEMES_STORE),
-    db.getAll(EVENTS_STORE),
-    db.getAll(EVENT_NOTES_STORE),
-    db.getAll(PRAYER_CARDS_STORE),
-    db.getAll(LIBRARY_TAGS_STORE),
+  const [entries, highlights, themes, events, tags] = await Promise.all([
+    listEntries(),
+    listHighlights(),
+    listThemes(),
+    listCalendarEvents(),
+    listTags(),
   ])
 
-  const themes = await Promise.all(
-    themesRaw.map(async (t) => ({ ...t, imageBlob: t.imageBlob ? await blobToBase64(t.imageBlob) : null })),
+  const eventNotes = (await Promise.all(events.map((e) => listEventNotes(e.id)))).flat()
+  const prayerCards = (await Promise.all(events.map((e) => listPrayerCards(e.id)))).flat()
+
+  const themesPortable = await Promise.all(
+    themes.map(async ({ imageUrl, ...t }) => ({
+      ...t,
+      imageBlob: imageUrl ? await urlToBase64(imageUrl) : null,
+    })),
   )
-  const calendarEvents = await Promise.all(
-    eventsRaw.map(async (e) => ({ ...e, coverImage: e.coverImage ? await blobToBase64(e.coverImage) : null })),
+  const eventsPortable = await Promise.all(
+    events.map(async ({ coverImageUrl, ...e }) => ({
+      ...e,
+      coverImage: coverImageUrl ? await urlToBase64(coverImageUrl) : null,
+    })),
   )
 
   return {
     app: 'rooted',
-    schemaVersion: DB_VERSION,
+    schemaVersion: 1,
     exportedAt: new Date().toISOString(),
     journalEntries: entries,
     highlights,
-    themes,
-    calendarEvents,
+    themes: themesPortable,
+    calendarEvents: eventsPortable,
     eventNotes,
     prayerCards,
-    libraryTags,
+    libraryTags: tags,
   }
 }
 
-async function restoreRows(db, storeName, rows, blobFields = []) {
-  for (const row of rows) {
-    const copy = { ...row }
-    for (const field of blobFields) {
-      if (copy[field]) copy[field] = await base64ToBlob(copy[field])
-    }
-    await db.put(storeName, copy)
-  }
-}
-
-// Upserts by id, so importing a backup merges into (rather than replaces)
-// whatever is already on this device.
+// Upserts by id, so importing a backup (or migrating local data) merges
+// into whatever is already in this account rather than duplicating it.
 export async function importAllData(data) {
-  const db = await getDb()
-  await restoreRows(db, ENTRIES_STORE, data.journalEntries || [])
-  await restoreRows(db, HIGHLIGHTS_STORE, data.highlights || [])
-  await restoreRows(db, THEMES_STORE, data.themes || [], ['imageBlob'])
-  await restoreRows(db, EVENTS_STORE, data.calendarEvents || [], ['coverImage'])
-  await restoreRows(db, EVENT_NOTES_STORE, data.eventNotes || [])
-  await restoreRows(db, PRAYER_CARDS_STORE, data.prayerCards || [])
-  await restoreRows(db, LIBRARY_TAGS_STORE, data.libraryTags || [])
+  const userId = await getUserId()
+
+  for (const entry of data.journalEntries || []) {
+    let sections = Array.isArray(entry.sections) ? entry.sections : []
+    if (sections.length === 0 && entry.body) {
+      sections = [{ id: makeId(), type: 'notes', data: { html: entry.body } }]
+    }
+    const { error } = await supabase.from('journal_entries').upsert({
+      id: entry.id,
+      user_id: userId,
+      title: entry.title || 'Untitled',
+      sections,
+      reference: entry.reference || null,
+      type: entry.type || 'reflection',
+      tags: Array.isArray(entry.tags) ? entry.tags : [],
+    })
+    if (error) throw error
+  }
+
+  for (const tag of data.libraryTags || []) {
+    const { error } = await supabase
+      .from('library_tags')
+      .upsert({ id: tag.id, user_id: userId, name: tag.name })
+    if (error) throw error
+  }
+
+  for (const theme of data.themes || []) {
+    let imagePath = null
+    if (theme.imageBlob) {
+      const blob = await base64ToBlob(theme.imageBlob)
+      imagePath = `${userId}/theme-${theme.id}.jpg`
+      await uploadCover(imagePath, blob)
+    }
+    const { error } = await supabase.from('themes').upsert({
+      id: theme.id,
+      user_id: userId,
+      title: theme.title,
+      subtitle: theme.subtitle || '',
+      reference: theme.reference || '',
+      image_path: imagePath,
+    })
+    if (error) throw error
+  }
+
+  for (const event of data.calendarEvents || []) {
+    let coverPath = null
+    if (event.coverImage) {
+      const blob = await base64ToBlob(event.coverImage)
+      coverPath = `${userId}/event-${event.id}.jpg`
+      await uploadCover(coverPath, blob)
+    }
+    const { error } = await supabase.from('calendar_events').upsert({
+      id: event.id,
+      user_id: userId,
+      title: event.title,
+      notes: event.notes || '',
+      category: event.category || 'event',
+      custom_category: event.customCategory || '',
+      start_date: event.startDate,
+      end_date: event.endDate || event.startDate,
+      anchor_verse: event.anchorVerse || '',
+      time: event.time || '',
+      theme: event.theme || '',
+      cover_image_path: coverPath,
+    })
+    if (error) throw error
+  }
+
+  for (const note of data.eventNotes || []) {
+    const { error } = await supabase.from('event_notes').upsert(
+      {
+        user_id: userId,
+        event_id: note.eventId,
+        date: note.date,
+        focus: note.focus || '',
+        minister: note.minister || '',
+        verses: Array.isArray(note.verses) ? note.verses : [],
+        notes: note.notes || '',
+        prayer_points: note.prayerPoints || '',
+      },
+      { onConflict: 'event_id,date' },
+    )
+    if (error) throw error
+  }
+
+  for (const card of data.prayerCards || []) {
+    const { error } = await supabase.from('prayer_cards').upsert({
+      id: card.id,
+      user_id: userId,
+      event_id: card.eventId,
+      title: card.title,
+      items: Array.isArray(card.items) ? card.items : [],
+    })
+    if (error) throw error
+  }
+
+  for (const h of data.highlights || []) {
+    const { error } = await supabase
+      .from('highlights')
+      .upsert({ id: h.id, user_id: userId, color: h.color, reference: h.reference, text: h.text }, { onConflict: 'user_id,id' })
+    if (error) throw error
+  }
 }

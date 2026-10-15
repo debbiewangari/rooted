@@ -1,11 +1,16 @@
 import { useRef, useState } from 'react'
 import { FilledButton, OutlinedButton } from '../components/Button'
 import { exportAllData, importAllData } from '../lib/db'
+import * as legacyDb from '../lib/legacyDb'
 import { getName, setName } from '../lib/profile'
+import { supabase } from '../lib/supabase'
+import { useAuth } from '../lib/auth.jsx'
 
 export function Settings() {
+  const { user } = useAuth()
   const fileRef = useRef(null)
   const [status, setStatus] = useState('')
+  const [migrateStatus, setMigrateStatus] = useState('idle') // idle | loading | done | error
   const [name, setNameInput] = useState(getName())
   const [nameSaved, setNameSaved] = useState(false)
 
@@ -42,16 +47,43 @@ export function Settings() {
     e.target.value = ''
   }
 
+  async function handleMigrateLocalData() {
+    setMigrateStatus('loading')
+    try {
+      const data = await legacyDb.exportAllData()
+      await importAllData(data)
+      setMigrateStatus('done')
+    } catch {
+      setMigrateStatus('error')
+    }
+  }
+
+  async function handleSignOut() {
+    await supabase.auth.signOut()
+  }
+
   return (
     <div className="min-h-screen px-6 pt-10 pb-6">
       <p className="font-label text-xs uppercase tracking-label text-black/40">Settings</p>
-      <h1 className="mt-1 font-display text-2xl font-semibold text-ink-black">Backup &amp; restore</h1>
-      <p className="mt-2 font-body text-sm text-black/60">
-        Rooted keeps everything on this device only. Export a backup file to keep your data safe, move it to another
-        device, or restore it later.
-      </p>
+      <h1 className="mt-1 font-display text-2xl font-semibold text-ink-black">Account</h1>
 
-      <div className="mt-8">
+      {user && (
+        <div className="mt-5 flex items-center justify-between rounded-card border border-black/10 bg-mist px-4 py-3">
+          <div className="min-w-0">
+            <p className="font-label text-[10px] uppercase tracking-label text-black/40">Signed in as</p>
+            <p className="truncate font-body text-sm text-ink-black">{user.email}</p>
+          </div>
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="shrink-0 font-label text-xs uppercase tracking-label text-deep-indigo"
+          >
+            Sign out
+          </button>
+        </div>
+      )}
+
+      <div className="mt-6">
         <label className="font-label text-[11px] uppercase tracking-label text-black/40">Display name</label>
         <input
           type="text"
@@ -64,17 +96,45 @@ export function Settings() {
         {nameSaved && <p className="mt-1 font-body text-xs text-deep-indigo">Saved</p>}
       </div>
 
-      <div className="mt-8 flex flex-col gap-3">
-        <FilledButton type="button" onClick={handleExport}>
-          Export data
+      <div className="mt-8">
+        <h2 className="font-display text-lg font-semibold text-ink-black">Import local data</h2>
+        <p className="mt-1 font-body text-sm text-black/60">
+          Bring over studies, themes and events saved on this device before you signed in.
+        </p>
+        <FilledButton
+          type="button"
+          onClick={handleMigrateLocalData}
+          disabled={migrateStatus === 'loading'}
+          className="mt-3 w-full"
+        >
+          {migrateStatus === 'loading' ? 'Importing…' : 'Import my local data'}
         </FilledButton>
+        {migrateStatus === 'done' && (
+          <p className="mt-2 font-body text-sm text-deep-indigo">Done — reload the app to see everything.</p>
+        )}
+        {migrateStatus === 'error' && (
+          <p className="mt-2 font-body text-sm text-burnt-orange">Something went wrong — try again.</p>
+        )}
+      </div>
 
-        <OutlinedButton type="button" onClick={() => fileRef.current?.click()}>
-          Import data
-        </OutlinedButton>
-        <input ref={fileRef} type="file" accept="application/json" onChange={handleImportFile} className="sr-only" />
+      <div className="mt-8">
+        <h2 className="font-display text-lg font-semibold text-ink-black">Backup &amp; restore</h2>
+        <p className="mt-1 font-body text-sm text-black/60">
+          Export a backup of your account's data, or restore one into it.
+        </p>
 
-        {status && <p className="font-body text-sm text-black/60">{status}</p>}
+        <div className="mt-3 flex flex-col gap-3">
+          <FilledButton type="button" onClick={handleExport}>
+            Export data
+          </FilledButton>
+
+          <OutlinedButton type="button" onClick={() => fileRef.current?.click()}>
+            Import data
+          </OutlinedButton>
+          <input ref={fileRef} type="file" accept="application/json" onChange={handleImportFile} className="sr-only" />
+
+          {status && <p className="font-body text-sm text-black/60">{status}</p>}
+        </div>
       </div>
     </div>
   )

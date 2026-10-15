@@ -20,8 +20,10 @@ export function EventEdit() {
   const [anchorVerse, setAnchorVerse] = useState('')
   const [time, setTime] = useState('')
   const [theme, setTheme] = useState('')
-  const [coverImage, setCoverImage] = useState(null)
-  const [previewUrl, setPreviewUrl] = useState(null)
+  const [existingImageUrl, setExistingImageUrl] = useState(null)
+  const [newCoverImage, setNewCoverImage] = useState(null)
+  const [localPreviewUrl, setLocalPreviewUrl] = useState(null)
+  const [imageRemoved, setImageRemoved] = useState(false)
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -39,10 +41,7 @@ export function EventEdit() {
       setAnchorVerse(row.anchorVerse || '')
       setTime(row.time || '')
       setTheme(row.theme || '')
-      if (row.coverImage) {
-        setCoverImage(row.coverImage)
-        setPreviewUrl(URL.createObjectURL(row.coverImage))
-      }
+      setExistingImageUrl(row.coverImageUrl || null)
       setLoading(false)
     })
   }, [id])
@@ -53,23 +52,27 @@ export function EventEdit() {
 
   useEffect(() => {
     return () => {
-      if (previewUrl) URL.revokeObjectURL(previewUrl)
+      if (localPreviewUrl) URL.revokeObjectURL(localPreviewUrl)
     }
-  }, [previewUrl])
+  }, [localPreviewUrl])
+
+  const previewUrl = localPreviewUrl || (!imageRemoved ? existingImageUrl : null)
 
   async function handleImageChange(e) {
     const file = e.target.files?.[0]
     if (!file) return
     const resized = await resizeImage(file)
-    if (previewUrl) URL.revokeObjectURL(previewUrl)
-    setCoverImage(resized)
-    setPreviewUrl(URL.createObjectURL(resized))
+    if (localPreviewUrl) URL.revokeObjectURL(localPreviewUrl)
+    setNewCoverImage(resized)
+    setLocalPreviewUrl(URL.createObjectURL(resized))
+    setImageRemoved(false)
   }
 
   function handleRemoveImage() {
-    if (previewUrl) URL.revokeObjectURL(previewUrl)
-    setCoverImage(null)
-    setPreviewUrl(null)
+    if (localPreviewUrl) URL.revokeObjectURL(localPreviewUrl)
+    setNewCoverImage(null)
+    setLocalPreviewUrl(null)
+    setImageRemoved(true)
   }
 
   async function handleSave(e) {
@@ -86,7 +89,8 @@ export function EventEdit() {
       anchorVerse: anchorVerse.trim(),
       time,
       theme: theme.trim(),
-      coverImage,
+      coverImage: newCoverImage,
+      removeImage: imageRemoved,
     })
     navigate(`/events/${id}`)
   }

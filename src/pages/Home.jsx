@@ -17,26 +17,14 @@ export function Home() {
   const [tags, setTags] = useState([])
   const [verse, setVerse] = useState(null)
   const [verseError, setVerseError] = useState(false)
-  const objectUrlsRef = useRef([])
   const scrollRef = useRef(null)
 
   useEffect(() => {
-    listThemes().then((rows) => {
-      const withUrls = rows.map((theme) => {
-        const imageUrl = theme.imageBlob ? URL.createObjectURL(theme.imageBlob) : null
-        if (imageUrl) objectUrlsRef.current.push(imageUrl)
-        return { ...theme, imageUrl }
-      })
-      setThemes(withUrls)
-    })
+    listThemes().then(setThemes)
     listTags().then(setTags)
     fetchDailyVerse()
       .then(setVerse)
       .catch(() => setVerseError(true))
-    return () => {
-      objectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url))
-      objectUrlsRef.current = []
-    }
   }, [])
 
   function handleThemeScroll() {

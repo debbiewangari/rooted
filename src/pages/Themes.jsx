@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { BotanicalSprig } from '../components/BotanicalLine'
 import { FilledButton } from '../components/Button'
@@ -7,24 +7,9 @@ import { listThemes } from '../lib/db'
 export function Themes() {
   const [themes, setThemes] = useState(null)
   const [query, setQuery] = useState('')
-  const objectUrlsRef = useRef([])
 
   useEffect(() => {
-    listThemes().then((rows) => {
-      const withUrls = rows
-        .slice()
-        .reverse()
-        .map((theme) => {
-          const imageUrl = theme.imageBlob ? URL.createObjectURL(theme.imageBlob) : null
-          if (imageUrl) objectUrlsRef.current.push(imageUrl)
-          return { ...theme, imageUrl }
-        })
-      setThemes(withUrls)
-    })
-    return () => {
-      objectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url))
-      objectUrlsRef.current = []
-    }
+    listThemes().then((rows) => setThemes(rows.slice().reverse()))
   }, [])
 
   const filtered = useMemo(() => {

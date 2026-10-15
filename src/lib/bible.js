@@ -1,4 +1,4 @@
-import { cachePassage, getCachedPassage, listCachedPassages } from './db'
+import { cachePassage, getCachedPassage, listCachedPassages } from './bibleCache'
 
 export const QUICK_PICKS = [
   'John 3:16',

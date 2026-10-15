@@ -13,23 +13,17 @@ export function ThemeDetail() {
   const navigate = useNavigate()
 
   const [theme, setTheme] = useState(null)
-  const [imageUrl, setImageUrl] = useState(null)
   const [passage, setPassage] = useState(null)
   const [status, setStatus] = useState('loading') // loading | idle | error | not-found
   const [error, setError] = useState('')
 
   useEffect(() => {
-    let url = null
     getTheme(id).then((row) => {
       if (!row) {
         setStatus('not-found')
         return
       }
       setTheme(row)
-      if (row.imageBlob) {
-        url = URL.createObjectURL(row.imageBlob)
-        setImageUrl(url)
-      }
 
       if (!row.reference) {
         setStatus('no-reference')
@@ -47,9 +41,6 @@ export function ThemeDetail() {
           setError(err.message || 'Could not load that passage.')
         })
     })
-    return () => {
-      if (url) URL.revokeObjectURL(url)
-    }
   }, [id])
 
   useEffect(() => {
@@ -70,7 +61,7 @@ export function ThemeDetail() {
   return (
     <div className="min-h-screen pb-6">
       <div className="relative h-72 w-full overflow-hidden bg-warm-sand">
-        {imageUrl && <img src={imageUrl} alt="" className="h-full w-full object-cover" />}
+        {theme.imageUrl && <img src={theme.imageUrl} alt="" className="h-full w-full object-cover" />}
         <div className="absolute inset-0 bg-gradient-to-t from-cream-paper via-transparent to-black/10" />
         <Link
           to="/themes"

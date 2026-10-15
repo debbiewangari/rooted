@@ -15,8 +15,21 @@ import { EventEdit } from './pages/EventEdit'
 import { EventDay } from './pages/EventDay'
 import { Events } from './pages/Events'
 import { Settings } from './pages/Settings'
+import { Login } from './pages/Login'
+import { useAuth } from './lib/auth.jsx'
+import { supabaseConfigured } from './lib/supabase'
 
 export default function App() {
+  const { user, loading } = useAuth()
+
+  if (supabaseConfigured && loading) {
+    return <div className="min-h-screen bg-white" />
+  }
+
+  if (!supabaseConfigured || !user) {
+    return <Login />
+  }
+
   return (
     <div className="min-h-screen bg-cream-paper pb-20">
       <Routes>
