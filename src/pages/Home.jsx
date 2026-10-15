@@ -3,13 +3,16 @@ import { Link } from 'react-router-dom'
 import { Blob } from '../components/Blob'
 import { BotanicalLeaf, BotanicalSprig } from '../components/BotanicalLine'
 import { UpcomingEvents } from '../components/UpcomingEvents'
-import { listThemes } from '../lib/db'
+import { tagColor } from '../lib/library'
+import { listTags, listThemes } from '../lib/db'
 
 const THEME_CARD_WIDTH = 176 + 16 // w-44 + gap-4
+const MAX_HOME_TAGS = 3
 
 export function Home() {
   const [themes, setThemes] = useState([])
   const [activeTheme, setActiveTheme] = useState(0)
+  const [tags, setTags] = useState([])
   const objectUrlsRef = useRef([])
   const scrollRef = useRef(null)
 
@@ -22,6 +25,7 @@ export function Home() {
       })
       setThemes(withUrls)
     })
+    listTags().then(setTags)
     return () => {
       objectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url))
       objectUrlsRef.current = []
@@ -125,6 +129,30 @@ export function Home() {
           </div>
         )}
       </section>
+
+      {tags.length > 0 && (
+        <section className="relative z-10 px-6 pb-10">
+          <div className="flex items-baseline justify-between">
+            <h2 className="font-display text-2xl uppercase text-deep-indigo">Explore by Theme</h2>
+            <Link to="/journal" className="font-label text-xs uppercase tracking-label text-burnt-orange">
+              See all
+            </Link>
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            {tags.slice(0, MAX_HOME_TAGS).map((tag, i) => (
+              <Link
+                key={tag.id}
+                to={`/journal?tag=${encodeURIComponent(tag.name)}`}
+                className="flex items-center gap-2 rounded-pill border border-black/10 bg-pure-white px-4 py-2 font-label text-[11px] uppercase tracking-label text-deep-indigo"
+              >
+                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: tagColor(i) }} />
+                {tag.name}
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   )
 }

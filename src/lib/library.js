@@ -11,6 +11,23 @@ export const LIBRARY_TYPES = [
 
 export const TAG_COLORS = ['#ffc400', '#ed7328', '#a2d3a6', '#d2b68c', '#6aa8dc']
 
+// The content "blocks" an entry can be built from — a user picks which of
+// these apply to a given entry (CMS-style), rather than every entry having
+// a single fixed body. Richtext blocks share one editor; scripture/prayer
+// get their own structured editors.
+export const SECTION_TYPES = [
+  { id: 'notes', label: 'Notes', kind: 'richtext', placeholder: 'Write your notes…' },
+  { id: 'scripture', label: 'Scriptures', kind: 'scripture' },
+  { id: 'story', label: 'Bible Story', kind: 'richtext', placeholder: 'Tell the story…' },
+  { id: 'declaration', label: 'Prophetic Declarations', kind: 'richtext', placeholder: 'Declare the word…' },
+  { id: 'prayer', label: 'Prayer', kind: 'prayer' },
+  { id: 'testimony', label: 'Testimony', kind: 'richtext', placeholder: 'Share what God has done…' },
+]
+
+export function sectionConfig(typeId) {
+  return SECTION_TYPES.find((s) => s.id === typeId)
+}
+
 export function typeConfig(typeId) {
   return LIBRARY_TYPES.find((t) => t.id === typeId) || LIBRARY_TYPES[3]
 }
@@ -37,18 +54,33 @@ function stripHtml(html) {
   return (html || '').replace(/<[^>]*>/g, ' ').trim()
 }
 
+// Entries created before sections existed just have a plain `body`; newer
+// ones are built from `sections` blocks instead. This flattens either into
+// one searchable/previewable string.
+export function entryText(entry) {
+  if (entry.sections?.length) {
+    return entry.sections
+      .map((s) => {
+        if (s.type === 'scripture') return (s.data.verses || []).map((v) => v.reference).join(', ')
+        if (s.type === 'prayer') return (s.data.items || []).map((i) => i.text).join(' ')
+        return stripHtml(s.data?.html)
+      })
+      .join(' ')
+  }
+  return stripHtml(entry.body)
+}
+
 export function matchesSearch(entry, query) {
   if (!query) return true
   const q = query.toLowerCase()
   return (
     entry.title.toLowerCase().includes(q) ||
-    stripHtml(entry.body).toLowerCase().includes(q) ||
+    entryText(entry).toLowerCase().includes(q) ||
     (entry.reference || '').toLowerCase().includes(q) ||
     (entry.tags || []).some((t) => t.toLowerCase().includes(q))
   )
 }
 
-export function plainPreview(html, maxLen = 140) {
-  const text = stripHtml(html)
+export function plainPreview(text, maxLen = 140) {
   return text.length > maxLen ? `${text.slice(0, maxLen)}…` : text
 }

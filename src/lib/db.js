@@ -76,13 +76,14 @@ export async function getEntry(id) {
   return db.get(ENTRIES_STORE, id)
 }
 
-export async function createEntry({ title, body, reference, type, tags }) {
+export async function createEntry({ title, body, reference, type, tags, sections }) {
   const db = await getDb()
   const now = Date.now()
   const entry = {
     id: makeId(),
     title: title?.trim() || 'Untitled',
     body: body || '',
+    sections: Array.isArray(sections) ? sections : [],
     reference: reference || null,
     type: type || 'reflection',
     tags: Array.isArray(tags) ? tags : [],

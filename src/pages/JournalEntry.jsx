@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { FilledButton, OutlinedButton } from '../components/Button'
-import { RichTextEditor } from '../components/RichTextEditor'
+import { EntrySections } from '../components/EntrySections'
 import { DEFAULT_TRANSLATION, fetchPassage } from '../lib/bible'
 import { LIBRARY_TYPES } from '../lib/library'
 import { createEntry, createTag, deleteEntry, getEntry, listTags, updateEntry } from '../lib/db'
@@ -14,7 +14,7 @@ export function JournalEntry() {
   const navigate = useNavigate()
 
   const [title, setTitle] = useState(searchParams.get('title') || '')
-  const [body, setBody] = useState('')
+  const [sections, setSections] = useState([])
   const [reference, setReference] = useState(searchParams.get('ref') || '')
   const [type, setType] = useState(searchParams.get('type') || 'reflection')
   const [tags, setTags] = useState([])
@@ -35,7 +35,13 @@ export function JournalEntry() {
         return
       }
       setTitle(entry.title)
-      setBody(entry.body)
+      // Entries saved before the sections editor existed just have a plain
+      // `body` — fold it into a single Notes section rather than losing it.
+      if (entry.sections?.length) {
+        setSections(entry.sections)
+      } else if (entry.body) {
+        setSections([{ id: crypto.randomUUID(), type: 'notes', data: { html: entry.body } }])
+      }
       setReference(entry.reference || '')
       setType(entry.type || 'reflection')
       setTags(entry.tags || [])
@@ -69,9 +75,9 @@ export function JournalEntry() {
   async function handleSave(e) {
     e.preventDefault()
     if (id) {
-      await updateEntry(id, { title, body, reference: reference || null, type, tags })
+      await updateEntry(id, { title, sections, body: '', reference: reference || null, type, tags })
     } else {
-      await createEntry({ title, body, reference, type, tags })
+      await createEntry({ title, sections, reference, type, tags })
     }
     navigate('/journal')
   }
@@ -170,11 +176,8 @@ export function JournalEntry() {
         </div>
       </div>
 
-      <div className="mt-4 flex-1">
-        <span className="font-label text-[11px] uppercase tracking-label text-black/40">Content</span>
-        <div className="mt-1">
-          <RichTextEditor value={body} onChange={setBody} placeholder="Write your reflection…" />
-        </div>
+      <div className="mt-6 flex-1">
+        <EntrySections sections={sections} onChange={setSections} />
       </div>
 
       <div className="mt-6 flex gap-3">

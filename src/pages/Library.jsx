@@ -1,16 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { FilledButton } from '../components/Button'
 import { TYPE_ICONS } from '../components/LibraryIcons'
-import { LIBRARY_TYPES, formatRelativeTime, matchesSearch, plainPreview, tagColor, typeConfig } from '../lib/library'
+import { LIBRARY_TYPES, entryText, formatRelativeTime, matchesSearch, plainPreview, tagColor, typeConfig } from '../lib/library'
 import { createTag, deleteEntry, listEntries, listTags } from '../lib/db'
 
 export function Library() {
+  const [searchParams] = useSearchParams()
   const [entries, setEntries] = useState(null)
   const [tags, setTags] = useState([])
   const [query, setQuery] = useState('')
-  const [activeType, setActiveType] = useState('all')
-  const [activeTag, setActiveTag] = useState(null)
+  const [activeType, setActiveType] = useState(searchParams.get('type') || 'all')
+  const [activeTag, setActiveTag] = useState(searchParams.get('tag') || null)
   const [addingTag, setAddingTag] = useState(false)
   const [newTagName, setNewTagName] = useState('')
   const [openMenuId, setOpenMenuId] = useState(null)
@@ -188,8 +189,10 @@ export function Library() {
                     {cfg.singular}
                     {entry.reference ? ` · ${entry.reference}` : ''}
                   </p>
-                  {entry.body && (
-                    <p className="mt-0.5 truncate font-body text-xs text-black/50">{plainPreview(entry.body, 80)}</p>
+                  {entryText(entry) && (
+                    <p className="mt-0.5 truncate font-body text-xs text-black/50">
+                      {plainPreview(entryText(entry), 80)}
+                    </p>
                   )}
                 </Link>
                 <span className="shrink-0 font-label text-[10px] uppercase tracking-label text-black/30">
