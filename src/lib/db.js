@@ -277,3 +277,75 @@ export async function deletePrayerCard(cardId) {
   const db = await getDb()
   await db.delete(PRAYER_CARDS_STORE, cardId)
 }
+
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onloadend = () => resolve(reader.result)
+    reader.onerror = reject
+    reader.readAsDataURL(blob)
+  })
+}
+
+async function base64ToBlob(dataUrl) {
+  const res = await fetch(dataUrl)
+  return res.blob()
+}
+
+// Journal entries, highlights, themes, calendar events (with day notes and
+// standing prayer lists) — everything a person actually authored. The Bible
+// passage cache is skipped since it's just regenerable API responses, not
+// content. Blobs (theme/event cover images) are inlined as base64 so the
+// whole backup is a single portable JSON file.
+export async function exportAllData() {
+  const db = await getDb()
+  const [entries, highlights, themesRaw, eventsRaw, eventNotes, prayerCards] = await Promise.all([
+    db.getAll(ENTRIES_STORE),
+    db.getAll(HIGHLIGHTS_STORE),
+    db.getAll(THEMES_STORE),
+    db.getAll(EVENTS_STORE),
+    db.getAll(EVENT_NOTES_STORE),
+    db.getAll(PRAYER_CARDS_STORE),
+  ])
+
+  const themes = await Promise.all(
+    themesRaw.map(async (t) => ({ ...t, imageBlob: t.imageBlob ? await blobToBase64(t.imageBlob) : null })),
+  )
+  const calendarEvents = await Promise.all(
+    eventsRaw.map(async (e) => ({ ...e, coverImage: e.coverImage ? await blobToBase64(e.coverImage) : null })),
+  )
+
+  return {
+    app: 'rooted',
+    schemaVersion: DB_VERSION,
+    exportedAt: new Date().toISOString(),
+    journalEntries: entries,
+    highlights,
+    themes,
+    calendarEvents,
+    eventNotes,
+    prayerCards,
+  }
+}
+
+async function restoreRows(db, storeName, rows, blobFields = []) {
+  for (const row of rows) {
+    const copy = { ...row }
+    for (const field of blobFields) {
+      if (copy[field]) copy[field] = await base64ToBlob(copy[field])
+    }
+    await db.put(storeName, copy)
+  }
+}
+
+// Upserts by id, so importing a backup merges into (rather than replaces)
+// whatever is already on this device.
+export async function importAllData(data) {
+  const db = await getDb()
+  await restoreRows(db, ENTRIES_STORE, data.journalEntries || [])
+  await restoreRows(db, HIGHLIGHTS_STORE, data.highlights || [])
+  await restoreRows(db, THEMES_STORE, data.themes || [], ['imageBlob'])
+  await restoreRows(db, EVENTS_STORE, data.calendarEvents || [], ['coverImage'])
+  await restoreRows(db, EVENT_NOTES_STORE, data.eventNotes || [])
+  await restoreRows(db, PRAYER_CARDS_STORE, data.prayerCards || [])
+}

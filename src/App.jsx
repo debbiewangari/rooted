@@ -13,6 +13,7 @@ import { EventDetail } from './pages/EventDetail'
 import { EventEdit } from './pages/EventEdit'
 import { EventDay } from './pages/EventDay'
 import { Events } from './pages/Events'
+import { Settings } from './pages/Settings'
 
 export default function App() {
   return (
@@ -32,6 +33,7 @@ export default function App() {
         <Route path="/events/:id" element={<EventDetail />} />
         <Route path="/events/:id/edit" element={<EventEdit />} />
         <Route path="/events/:id/day/:date" element={<EventDay />} />
+        <Route path="/settings" element={<Settings />} />
       </Routes>
       <NavBar />
     </div>

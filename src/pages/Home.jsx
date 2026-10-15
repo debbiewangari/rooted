@@ -41,6 +41,19 @@ export function Home() {
       <BotanicalSprig className="absolute left-0 top-40 h-24 w-24 opacity-60" rotate={-10} />
 
       <header className="relative px-6 pt-10 pb-6">
+        <Link
+          to="/settings"
+          aria-label="Backup & restore"
+          className="absolute right-6 top-10 flex h-9 w-9 items-center justify-center rounded-pill border border-black/10 bg-pure-white"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#234386" strokeWidth="1.8">
+            <circle cx="12" cy="12" r="3" />
+            <path
+              d="M19.4 13a7.7 7.7 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7.6 7.6 0 0 0-1.7-1L15 3.5h-4l-.3 2.5a7.6 7.6 0 0 0-1.7 1l-2.4-1-2 3.4L6.6 11a7.7 7.7 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7.6 7.6 0 0 0 1.7 1l.3 2.5h4l.3-2.5a7.6 7.6 0 0 0 1.7-1l2.4 1 2-3.4-2-1.6Z"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </Link>
         <p className="font-label text-xs uppercase tracking-label text-deep-indigo">Welcome back</p>
         <h1 className="mt-1 font-display text-5xl uppercase text-deep-indigo">Rooted</h1>
         <p className="mt-2 font-script text-3xl text-deep-indigo">Grow quietly, daily.</p>
