@@ -36,8 +36,30 @@ export function Home() {
     const el = scrollRef.current
     if (!el) return
     const index = Math.round(el.scrollLeft / THEME_CARD_WIDTH)
-    setActiveTheme(Math.min(Math.max(index, 0), themes.length - 1))
+    setActiveTheme(Math.min(Math.max(index, 0), combined.length - 1))
   }
+
+  // One combined row: curated scripture-card Themes plus Library tags,
+  // rendered with the same card shape so "Explore by Themes" isn't split
+  // across two homepage sections.
+  const combined = [
+    ...themes.map((t) => ({
+      kind: 'theme',
+      key: `theme-${t.id}`,
+      link: `/themes/${t.id}`,
+      title: t.title,
+      subtitle: t.subtitle,
+      reference: t.reference,
+      imageUrl: t.imageUrl,
+    })),
+    ...tags.slice(0, MAX_HOME_TAGS).map((t, i) => ({
+      kind: 'tag',
+      key: `tag-${t.id}`,
+      link: `/journal?tag=${encodeURIComponent(t.name)}`,
+      title: t.name,
+      color: tagColor(i),
+    })),
+  ]
 
   return (
     <div className="relative overflow-hidden">
@@ -72,7 +94,7 @@ export function Home() {
 
       <section className="relative z-10 mt-10 pb-6">
         <div className="flex items-baseline justify-between px-6">
-          <h2 className="font-display text-2xl uppercase text-deep-indigo">Themes</h2>
+          <h2 className="font-display text-2xl uppercase text-deep-indigo">Explore by Themes</h2>
           <Link to="/themes" className="font-label text-xs uppercase tracking-label text-burnt-orange">
             See all
           </Link>
@@ -83,7 +105,7 @@ export function Home() {
           onScroll={handleThemeScroll}
           className="no-scrollbar mt-4 flex snap-x gap-4 overflow-x-auto px-6"
         >
-          {themes.length === 0 && (
+          {combined.length === 0 && (
             <Link
               to="/themes"
               className="flex h-64 w-44 shrink-0 snap-start flex-col items-center justify-center gap-2 rounded-card border border-dashed border-black/20 bg-pure-white"
@@ -93,34 +115,45 @@ export function Home() {
             </Link>
           )}
 
-          {themes.map((theme, i) => (
-            <Link key={theme.id} to={`/themes/${theme.id}`} className="w-44 shrink-0 snap-start">
-              <div className="relative h-64 w-44 overflow-hidden rounded-card bg-warm-sand shadow-xl-2">
-                {theme.imageUrl ? (
-                  <img src={theme.imageUrl} alt="" className="h-full w-full object-cover" />
-                ) : (
+          {combined.map((item, i) => (
+            <Link key={item.key} to={item.link} className="w-44 shrink-0 snap-start">
+              <div
+                className="relative h-64 w-44 overflow-hidden rounded-card bg-warm-sand shadow-xl-2"
+                style={item.kind === 'tag' ? { backgroundColor: item.color } : undefined}
+              >
+                {item.kind === 'theme' &&
+                  (item.imageUrl ? (
+                    <img src={item.imageUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex h-full items-center justify-center">
+                      <BotanicalSprig className="h-16 w-16 opacity-60" color="var(--color-deep-indigo)" />
+                    </div>
+                  ))}
+                {item.kind === 'tag' && (
                   <div className="flex h-full items-center justify-center">
-                    <BotanicalSprig className="h-16 w-16 opacity-60" color="var(--color-deep-indigo)" />
+                    <BotanicalSprig className="h-16 w-16 opacity-50" color="#ffffff" />
                   </div>
                 )}
                 <span className="absolute left-3 top-3 rounded-pill bg-black/35 px-2 py-0.5 font-label text-[10px] text-pure-white">
                   {String(i + 1).padStart(2, '0')}
                 </span>
               </div>
-              <p className="mt-2 font-display text-lg text-deep-indigo">{theme.title}</p>
-              {theme.subtitle && <p className="font-body text-xs italic text-black/50">{theme.subtitle}</p>}
-              <p className="mt-1 font-label text-[10px] uppercase tracking-label text-burnt-orange">
-                {theme.reference}
-              </p>
+              <p className="mt-2 font-display text-lg text-deep-indigo">{item.title}</p>
+              {item.subtitle && <p className="font-body text-xs italic text-black/50">{item.subtitle}</p>}
+              {item.reference && (
+                <p className="mt-1 font-label text-[10px] uppercase tracking-label text-burnt-orange">
+                  {item.reference}
+                </p>
+              )}
             </Link>
           ))}
         </div>
 
-        {themes.length > 1 && (
+        {combined.length > 1 && (
           <div className="mt-3 flex justify-center gap-1.5">
-            {themes.map((theme, i) => (
+            {combined.map((item, i) => (
               <span
-                key={theme.id}
+                key={item.key}
                 className={`h-1.5 w-1.5 rounded-full transition-colors ${
                   i === activeTheme ? 'bg-deep-indigo' : 'bg-black/15'
                 }`}
@@ -129,31 +162,6 @@ export function Home() {
           </div>
         )}
       </section>
-
-      {tags.length > 0 && (
-        <section className="relative z-10 px-6 pb-10">
-          <div className="flex items-baseline justify-between">
-            <h2 className="font-display text-2xl uppercase text-deep-indigo">Explore by Themes</h2>
-            <Link to="/journal" className="font-label text-xs uppercase tracking-label text-burnt-orange">
-              See all
-            </Link>
-          </div>
-
-          <div className="mt-4 grid grid-cols-3 gap-2">
-            {tags.slice(0, MAX_HOME_TAGS).map((tag, i) => (
-              <Link
-                key={tag.id}
-                to={`/journal?tag=${encodeURIComponent(tag.name)}`}
-                className="flex flex-col items-center justify-center gap-2 rounded-card py-5"
-                style={{ backgroundColor: `${tagColor(i)}33` }}
-              >
-                <span className="h-6 w-6 rounded-full" style={{ backgroundColor: tagColor(i) }} />
-                <span className="font-label text-[10px] uppercase tracking-label text-deep-indigo">{tag.name}</span>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
     </div>
   )
 }
