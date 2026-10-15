@@ -231,7 +231,7 @@ export function Library() {
 
       <section className="mt-8">
         <div className="flex items-baseline justify-between">
-          <h2 className="font-display text-2xl uppercase text-deep-indigo">Explore by Theme</h2>
+          <h2 className="font-display text-2xl uppercase text-deep-indigo">Explore by Themes</h2>
           <button
             type="button"
             onClick={() => setAddingTag((v) => !v)}

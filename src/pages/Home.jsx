@@ -133,21 +133,22 @@ export function Home() {
       {tags.length > 0 && (
         <section className="relative z-10 px-6 pb-10">
           <div className="flex items-baseline justify-between">
-            <h2 className="font-display text-2xl uppercase text-deep-indigo">Explore by Theme</h2>
+            <h2 className="font-display text-2xl uppercase text-deep-indigo">Explore by Themes</h2>
             <Link to="/journal" className="font-label text-xs uppercase tracking-label text-burnt-orange">
               See all
             </Link>
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-4 grid grid-cols-3 gap-2">
             {tags.slice(0, MAX_HOME_TAGS).map((tag, i) => (
               <Link
                 key={tag.id}
                 to={`/journal?tag=${encodeURIComponent(tag.name)}`}
-                className="flex items-center gap-2 rounded-pill border border-black/10 bg-pure-white px-4 py-2 font-label text-[11px] uppercase tracking-label text-deep-indigo"
+                className="flex flex-col items-center justify-center gap-2 rounded-card py-5"
+                style={{ backgroundColor: `${tagColor(i)}33` }}
               >
-                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: tagColor(i) }} />
-                {tag.name}
+                <span className="h-6 w-6 rounded-full" style={{ backgroundColor: tagColor(i) }} />
+                <span className="font-label text-[10px] uppercase tracking-label text-deep-indigo">{tag.name}</span>
               </Link>
             ))}
           </div>
