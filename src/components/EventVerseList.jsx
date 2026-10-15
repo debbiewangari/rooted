@@ -31,8 +31,7 @@ export function EventVerseList({ verses, onAdd, onRemove }) {
     }
   }
 
-  function handleAdd(e) {
-    e.preventDefault()
+  function handleAdd() {
     if (!newRef.trim()) return
     onAdd(newRef.trim())
     setNewRef('')
@@ -79,17 +78,23 @@ export function EventVerseList({ verses, onAdd, onRemove }) {
         })}
       </div>
 
-      <form onSubmit={handleAdd} className="mt-3 flex gap-2">
+      <div className="mt-3 flex gap-2">
         <input
           value={newRef}
           onChange={(e) => setNewRef(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              handleAdd()
+            }
+          }}
           placeholder="e.g. Daniel 4:34-35"
           className="flex-1 rounded-card border border-black/10 bg-pure-white px-3 py-2 font-body text-sm focus:outline-none"
         />
-        <FilledButton type="submit" className="px-5 py-2 text-[11px]">
+        <FilledButton type="button" onClick={handleAdd} className="px-5 py-2 text-[11px]">
           Add
         </FilledButton>
-      </form>
+      </div>
     </div>
   )
 }

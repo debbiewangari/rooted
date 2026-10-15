@@ -27,8 +27,7 @@ export function PrayerCards({ eventId }) {
     setNewItemText('')
   }
 
-  async function handleCreateCard(e) {
-    e.preventDefault()
+  async function handleCreateCard() {
     if (!newCardTitle.trim()) return
     const card = await createPrayerCard(eventId, newCardTitle)
     setNewCardTitle('')
@@ -37,8 +36,7 @@ export function PrayerCards({ eventId }) {
     setExpandedId(card.id)
   }
 
-  async function handleAddItem(e, cardId) {
-    e.preventDefault()
+  async function handleAddItem(cardId) {
     if (!newItemText.trim()) return
     await addPrayerItem(cardId, newItemText)
     setNewItemText('')
@@ -70,18 +68,24 @@ export function PrayerCards({ eventId }) {
       </div>
 
       {addingCard && (
-        <form onSubmit={handleCreateCard} className="mt-3 flex gap-2">
+        <div className="mt-3 flex gap-2">
           <input
             value={newCardTitle}
             onChange={(e) => setNewCardTitle(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                handleCreateCard()
+              }
+            }}
             placeholder="e.g. Prayer Requests"
             autoFocus
             className="flex-1 rounded-card border border-black/10 bg-pure-white px-3 py-2 font-body text-sm focus:outline-none"
           />
-          <FilledButton type="submit" className="px-5 py-2 text-[11px]">
+          <FilledButton type="button" onClick={handleCreateCard} className="px-5 py-2 text-[11px]">
             Add
           </FilledButton>
-        </form>
+        </div>
       )}
 
       <div className="mt-3 flex flex-col gap-3">
@@ -128,17 +132,23 @@ export function PrayerCards({ eventId }) {
                     )}
                   </ul>
 
-                  <form onSubmit={(e) => handleAddItem(e, card.id)} className="mt-3 flex gap-2">
+                  <div className="mt-3 flex gap-2">
                     <input
                       value={newItemText}
                       onChange={(e) => setNewItemText(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          handleAddItem(card.id)
+                        }
+                      }}
                       placeholder="Add a point…"
                       className="flex-1 rounded-card border border-black/10 bg-cream-paper px-3 py-2 font-body text-sm focus:outline-none"
                     />
-                    <FilledButton type="submit" className="px-5 py-2 text-[11px]">
+                    <FilledButton type="button" onClick={() => handleAddItem(card.id)} className="px-5 py-2 text-[11px]">
                       Add
                     </FilledButton>
-                  </form>
+                  </div>
 
                   <button
                     type="button"
