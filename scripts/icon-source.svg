@@ -1,0 +1,15 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" fill="#234386"/>
+  <g transform="translate(256,296)" stroke="#fbf9f6" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <!-- stem -->
+    <path d="M0,120 L0,-40"/>
+    <!-- roots -->
+    <path d="M0,120 C-30,140 -50,150 -78,168"/>
+    <path d="M0,120 C30,140 50,150 78,168"/>
+    <path d="M0,120 C0,150 0,165 0,186"/>
+    <!-- left leaf -->
+    <path d="M0,-40 C-50,-60 -78,-110 -62,-158 C-18,-150 10,-112 0,-40 Z" fill="#fbf9f6" stroke="none"/>
+    <!-- right leaf -->
+    <path d="M0,-20 C50,-42 86,-88 74,-132 C28,-122 -4,-86 0,-20 Z" fill="#ffc400" stroke="none"/>
+  </g>
+</svg>
