@@ -1,15 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Card } from '../components/Card'
 import { EventVerseList } from '../components/EventVerseList'
 import { RichTextEditor } from '../components/RichTextEditor'
 import { enumerateDates, formatLongDate } from '../lib/calendarUtils'
 import { getCalendarEvent, getEventNote, listEventNotes, setEventNote } from '../lib/db'
-
-const TABS = [
-  { id: 'verses', label: 'Bible Verses' },
-  { id: 'notes', label: 'Notes' },
-  { id: 'prayerPoints', label: 'Prayer Points' },
-]
 
 const EMPTY_FIELDS = { focus: '', minister: '', verses: [], notes: '', prayerPoints: '' }
 
@@ -37,7 +32,6 @@ export function EventDay() {
   const [event, setEvent] = useState(null)
   const [notFound, setNotFound] = useState(false)
   const [notedDates, setNotedDates] = useState(new Set())
-  const [activeTab, setActiveTab] = useState('verses')
   const [fields, setFields] = useState(EMPTY_FIELDS)
   const [savedAt, setSavedAt] = useState(null)
   const [saving, setSaving] = useState(false)
@@ -118,11 +112,6 @@ export function EventDay() {
     return () => clearTimeout(timeout)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fields])
-
-  function switchTab(tabId) {
-    persist(fields)
-    setActiveTab(tabId)
-  }
 
   function goToDate(d) {
     persist(fields)
@@ -221,9 +210,9 @@ export function EventDay() {
         </button>
       </div>
 
-      <div className="mt-5 flex flex-col gap-4">
-        <div>
-          <p className="font-label text-[10px] uppercase tracking-label text-black/40">Daily Focus</p>
+      <div className="mt-6 flex flex-col gap-4">
+        <Card>
+          <p className="font-label text-[11px] uppercase tracking-label text-black/40">Today's Focus</p>
           {editingFocus ? (
             <textarea
               autoFocus
@@ -232,21 +221,21 @@ export function EventDay() {
               onBlur={() => setEditingFocus(false)}
               placeholder="What's the focus for today?"
               rows={2}
-              className="mt-1 w-full resize-none rounded-card border border-black/10 bg-pure-white px-3 py-2 font-body text-sm text-black/80 placeholder:text-black/30 focus:outline-none"
+              className="mt-2 w-full resize-none rounded-card border border-black/10 bg-pure-white px-3 py-2 font-body text-sm text-black/80 placeholder:text-black/30 focus:outline-none"
             />
           ) : (
-            <button
-              type="button"
-              onClick={() => setEditingFocus(true)}
-              className="mt-1 block w-full text-left font-display text-base font-medium text-ink-black"
-            >
-              {fields.focus}
+            <button type="button" onClick={() => setEditingFocus(true)} className="mt-2 block w-full text-left">
+              {fields.focus ? (
+                <span className="font-display text-base font-medium text-ink-black">{fields.focus}</span>
+              ) : (
+                <span className="font-body text-sm text-black/30">What's the focus for today?</span>
+              )}
             </button>
           )}
-        </div>
+        </Card>
 
-        <div>
-          <p className="font-label text-[10px] uppercase tracking-label text-black/40">Minister</p>
+        <Card>
+          <p className="font-label text-[11px] uppercase tracking-label text-black/40">Minister</p>
           {editingMinister ? (
             <input
               autoFocus
@@ -254,54 +243,39 @@ export function EventDay() {
               onChange={(e) => setFields((f) => ({ ...f, minister: e.target.value }))}
               onBlur={() => setEditingMinister(false)}
               placeholder="e.g. Pastor Nathaniel Bassey"
-              className="mt-1 w-full rounded-card border border-black/10 bg-pure-white px-3 py-2 font-body text-sm placeholder:text-black/30 focus:outline-none"
+              className="mt-2 w-full rounded-card border border-black/10 bg-pure-white px-3 py-2 font-body text-sm placeholder:text-black/30 focus:outline-none"
             />
           ) : (
-            <button
-              type="button"
-              onClick={() => setEditingMinister(true)}
-              className="mt-1 block w-full text-left font-display text-base font-medium text-ink-black"
-            >
-              {fields.minister}
+            <button type="button" onClick={() => setEditingMinister(true)} className="mt-2 block w-full text-left">
+              {fields.minister ? (
+                <span className="font-display text-base font-medium text-ink-black">{fields.minister}</span>
+              ) : (
+                <span className="font-body text-sm text-black/30">e.g. Pastor Nathaniel Bassey</span>
+              )}
             </button>
           )}
-        </div>
-      </div>
+        </Card>
 
-      <div className="mt-6 flex border-b border-black/10">
-        {TABS.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => switchTab(tab.id)}
-            className={`flex-1 pb-2 font-label text-[11px] uppercase tracking-label ${
-              activeTab === tab.id ? 'border-b-2 border-deep-indigo text-deep-indigo' : 'text-black/40'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+        <Card>
+          <p className="font-label text-[11px] uppercase tracking-label text-black/40">Bible Verses</p>
+          <div className="mt-2">
+            <EventVerseList verses={fields.verses} onAdd={handleAddVerse} onRemove={handleRemoveVerse} />
+          </div>
+        </Card>
 
-      <div className="mt-4">
-        {activeTab === 'verses' && (
-          <EventVerseList verses={fields.verses} onAdd={handleAddVerse} onRemove={handleRemoveVerse} />
-        )}
-
-        {activeTab === 'notes' &&
-          (editingNotes ? (
-            <RichTextEditor
-              value={fields.notes}
-              onChange={(html) => setFields((f) => ({ ...f, notes: html }))}
-              onBlur={() => setEditingNotes(false)}
-              placeholder="Write your notes, reflections or what stood out to you today…"
-            />
+        <Card>
+          <p className="font-label text-[11px] uppercase tracking-label text-black/40">Notes</p>
+          {editingNotes ? (
+            <div className="mt-2">
+              <RichTextEditor
+                value={fields.notes}
+                onChange={(html) => setFields((f) => ({ ...f, notes: html }))}
+                onBlur={() => setEditingNotes(false)}
+                placeholder="Write your notes, reflections or what stood out to you today…"
+              />
+            </div>
           ) : (
-            <button
-              type="button"
-              onClick={() => setEditingNotes(true)}
-              className="block w-full rounded-card border border-black/10 bg-pure-white px-3 py-2.5 text-left"
-            >
+            <button type="button" onClick={() => setEditingNotes(true)} className="mt-2 block w-full text-left">
               {hasText(fields.notes) ? (
                 <span
                   className="rich-text-editor font-body text-sm text-black/80"
@@ -313,22 +287,22 @@ export function EventDay() {
                 </span>
               )}
             </button>
-          ))}
+          )}
+        </Card>
 
-        {activeTab === 'prayerPoints' &&
-          (editingPrayerPoints ? (
-            <RichTextEditor
-              value={fields.prayerPoints}
-              onChange={(html) => setFields((f) => ({ ...f, prayerPoints: html }))}
-              onBlur={() => setEditingPrayerPoints(false)}
-              placeholder="What to pray for…"
-            />
+        <Card>
+          <p className="font-label text-[11px] uppercase tracking-label text-black/40">Prayer Points</p>
+          {editingPrayerPoints ? (
+            <div className="mt-2">
+              <RichTextEditor
+                value={fields.prayerPoints}
+                onChange={(html) => setFields((f) => ({ ...f, prayerPoints: html }))}
+                onBlur={() => setEditingPrayerPoints(false)}
+                placeholder="What to pray for…"
+              />
+            </div>
           ) : (
-            <button
-              type="button"
-              onClick={() => setEditingPrayerPoints(true)}
-              className="block w-full rounded-card border border-black/10 bg-pure-white px-3 py-2.5 text-left"
-            >
+            <button type="button" onClick={() => setEditingPrayerPoints(true)} className="mt-2 block w-full text-left">
               {hasText(fields.prayerPoints) ? (
                 <span
                   className="rich-text-editor font-body text-sm text-black/80"
@@ -338,13 +312,12 @@ export function EventDay() {
                 <span className="font-body text-sm text-black/30">What to pray for…</span>
               )}
             </button>
-          ))}
+          )}
+        </Card>
 
-        {saving && (
-          <p className="mt-2 font-label text-[10px] uppercase tracking-label text-black/30">Saving…</p>
-        )}
+        {saving && <p className="font-label text-[10px] uppercase tracking-label text-black/30">Saving…</p>}
         {!saving && savedAt && (
-          <p className="mt-2 font-label text-[10px] uppercase tracking-label text-black/30">
+          <p className="font-label text-[10px] uppercase tracking-label text-black/30">
             Saved {new Date(savedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </p>
         )}
