@@ -4,6 +4,10 @@ import { FilledButton } from './Button'
 import { RichTextEditor } from './RichTextEditor'
 import { createPrayerCard, deletePrayerCard, listPrayerCards, updatePrayerCardNotes } from '../lib/db'
 
+function hasText(html) {
+  return Boolean(html && html.replace(/<[^>]*>/g, '').trim())
+}
+
 // Standing prayer lists for a challenge — e.g. a gratitude list or ongoing
 // requests — separate from the per-day notes since they aren't tied to a
 // single date and get prayed through repeatedly across the whole event.
@@ -15,6 +19,7 @@ export function PrayerCards({ eventId }) {
   const [addingCard, setAddingCard] = useState(false)
   const [newCardTitle, setNewCardTitle] = useState('')
   const [draftNotes, setDraftNotes] = useState('')
+  const [editingNotes, setEditingNotes] = useState(false)
   const [saving, setSaving] = useState(false)
   // The notes value as loaded, so the autosave effect can tell a real edit
   // apart from merely opening a list — comparing against a remembered
@@ -41,6 +46,7 @@ export function PrayerCards({ eventId }) {
     const card = cards.find((c) => c.id === id)
     baselineNotesRef.current = card?.notes || ''
     setDraftNotes(card?.notes || '')
+    setEditingNotes(!hasText(card?.notes))
     setExpandedId(id)
   }
 
@@ -64,6 +70,7 @@ export function PrayerCards({ eventId }) {
     await refresh()
     baselineNotesRef.current = ''
     setDraftNotes('')
+    setEditingNotes(true)
     setExpandedId(card.id)
   }
 
@@ -131,11 +138,25 @@ export function PrayerCards({ eventId }) {
 
               {expanded && (
                 <div className="mt-3">
-                  <RichTextEditor
-                    value={draftNotes}
-                    onChange={setDraftNotes}
-                    placeholder="Write what you're praying through…"
-                  />
+                  {editingNotes ? (
+                    <RichTextEditor
+                      value={draftNotes}
+                      onChange={setDraftNotes}
+                      onBlur={() => setEditingNotes(false)}
+                      placeholder="Write what you're praying through…"
+                    />
+                  ) : (
+                    <button type="button" onClick={() => setEditingNotes(true)} className="block w-full text-left">
+                      {hasText(draftNotes) ? (
+                        <span
+                          className="rich-text-editor font-body text-sm text-black/80"
+                          dangerouslySetInnerHTML={{ __html: draftNotes }}
+                        />
+                      ) : (
+                        <span className="font-body text-sm text-black/30">Write what you're praying through…</span>
+                      )}
+                    </button>
+                  )}
 
                   <div className="mt-2 flex items-center justify-between">
                     {saving ? (
@@ -143,13 +164,15 @@ export function PrayerCards({ eventId }) {
                     ) : (
                       <span />
                     )}
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteCard(card.id)}
-                      className="font-label text-[10px] uppercase tracking-label text-black/40"
-                    >
-                      Delete list
-                    </button>
+                    {editingNotes && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteCard(card.id)}
+                        className="font-label text-[10px] uppercase tracking-label text-black/40"
+                      >
+                        Delete list
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
