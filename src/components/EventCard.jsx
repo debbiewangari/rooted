@@ -49,6 +49,7 @@ export function EventCard({ event, progress }) {
           className="mt-0.5 h-4 w-4 shrink-0 self-start"
           color={categoryHex(event)}
           strokeWidth={2.75}
+          filled
         />
         <div className="min-w-0 flex-1">
           <p className="truncate font-display text-base font-medium text-ink-black">{event.title}</p>

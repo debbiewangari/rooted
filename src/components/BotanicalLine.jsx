@@ -26,6 +26,7 @@ export function BotanicalSprig({
   className = '',
   rotate = 0,
   strokeWidth = 1.5,
+  filled = false,
   ...props
 }) {
   return (
@@ -36,8 +37,8 @@ export function BotanicalSprig({
       aria-hidden="true"
       {...props}
     >
-      <g fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round">
-        <path d="M50 95 C48 65 52 35 50 5" />
+      <path d="M50 95 C48 65 52 35 50 5" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+      <g fill={filled ? color : 'none'} stroke={color} strokeWidth={strokeWidth}>
         <ellipse cx="38" cy="30" rx="12" ry="7" transform="rotate(-30 38 30)" />
         <ellipse cx="62" cy="45" rx="12" ry="7" transform="rotate(30 62 45)" />
         <ellipse cx="38" cy="60" rx="12" ry="7" transform="rotate(-30 38 60)" />

@@ -2,10 +2,15 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Card } from '../components/Card'
 import { OutlinedButton } from '../components/Button'
+import { TYPE_ICONS } from '../components/LibraryIcons'
 import { VerseList } from '../components/VerseList'
 import { DEFAULT_TRANSLATION, TRANSLATIONS, fetchPassage } from '../lib/bible'
-import { LIBRARY_TYPES, formatRelativeTime } from '../lib/library'
+import { typeConfig } from '../lib/library'
 import { getTheme, listEntriesByTag } from '../lib/db'
+
+function formatShortDate(timestamp) {
+  return new Date(timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
 
 const TRANSLATION_KEY = 'rooted:translation'
 
@@ -17,7 +22,7 @@ export function ThemeDetail() {
   const [passage, setPassage] = useState(null)
   const [status, setStatus] = useState('loading') // loading | idle | error | not-found
   const [error, setError] = useState('')
-  const [groupedEntries, setGroupedEntries] = useState(null)
+  const [entries, setEntries] = useState(null)
 
   useEffect(() => {
     getTheme(id).then((row) => {
@@ -27,15 +32,7 @@ export function ThemeDetail() {
       }
       setTheme(row)
 
-      listEntriesByTag(row.title).then((entries) => {
-        const groups = {}
-        entries.forEach((entry) => {
-          const key = entry.type || 'reflection'
-          groups[key] = groups[key] || []
-          groups[key].push(entry)
-        })
-        setGroupedEntries(groups)
-      })
+      listEntriesByTag(row.title).then(setEntries)
 
       if (!row.reference) {
         setStatus('no-reference')
@@ -139,30 +136,32 @@ export function ThemeDetail() {
           </Card>
         )}
 
-        {groupedEntries && Object.keys(groupedEntries).length > 0 && (
-          <div className="mt-4 flex flex-col gap-4">
-            {LIBRARY_TYPES.filter((t) => groupedEntries[t.id]?.length).map((t) => (
-              <Card key={t.id}>
-                <p className="font-display text-base font-semibold text-ink-black">
-                  {t.label} for {theme.title}
-                </p>
-                <div className="mt-3 flex flex-col gap-2.5">
-                  {groupedEntries[t.id].map((entry) => (
-                    <Link
-                      key={entry.id}
-                      to={`/journal/${entry.id}`}
-                      className="flex items-baseline justify-between gap-3 border-b border-black/5 pb-2.5 last:border-0 last:pb-0"
-                    >
-                      <span className="truncate font-body text-sm text-ink-black">{entry.title}</span>
-                      <span className="shrink-0 font-label text-[10px] uppercase tracking-label text-black/40">
-                        {formatRelativeTime(entry.updatedAt)}
-                      </span>
-                    </Link>
-                  ))}
-                </div>
-              </Card>
-            ))}
-          </div>
+        {entries && entries.length > 0 && (
+          <Card className="mt-4">
+            <p className="font-display text-base font-semibold text-ink-black">Entries for {theme.title}</p>
+            <div className="mt-3 flex flex-col">
+              {entries.map((entry) => {
+                const cfg = typeConfig(entry.type || 'reflection')
+                const Icon = TYPE_ICONS[entry.type || 'reflection']
+                return (
+                  <Link
+                    key={entry.id}
+                    to={`/journal/${entry.id}`}
+                    className="flex items-center gap-3 border-b border-black/8 py-3 first:pt-0 last:border-0 last:pb-0"
+                  >
+                    <Icon color="#234386" size={20} />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-display text-base font-medium text-ink-black">{entry.title}</p>
+                      <p className="mt-0.5 font-body text-xs text-black/50">
+                        {cfg.singular} · {formatShortDate(entry.updatedAt)}
+                      </p>
+                    </div>
+                    <span className="shrink-0 text-black/30">›</span>
+                  </Link>
+                )
+              })}
+            </div>
+          </Card>
         )}
       </div>
     </div>

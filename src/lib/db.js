@@ -256,9 +256,18 @@ export async function listEntriesByTag(tagName) {
   return data.map(fromEntryRow)
 }
 
+// Deleting the theme also has to drop its matching library_tags row(s) —
+// otherwise the next backfillThemesFromTags() call (run on every Home load)
+// sees that tag still registered, finds no theme for it, and silently
+// recreates the very card that was just deleted.
 export async function deleteTheme(id) {
-  const { data: row } = await supabase.from('themes').select('image_path').eq('id', id).maybeSingle()
+  const { data: row } = await supabase.from('themes').select('image_path, title').eq('id', id).maybeSingle()
   if (row?.image_path) await removeCover(row.image_path)
+  if (row?.title) {
+    const tags = await listTags()
+    const matches = tags.filter((t) => t.name.toLowerCase() === row.title.toLowerCase())
+    for (const tag of matches) await deleteTag(tag.id)
+  }
   const { error } = await supabase.from('themes').delete().eq('id', id)
   if (error) throw error
 }
