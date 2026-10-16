@@ -21,7 +21,13 @@ export function BotanicalLeaf({ color = 'var(--color-deep-indigo)', className = 
   )
 }
 
-export function BotanicalSprig({ color = 'var(--color-sky-blue)', className = '', rotate = 0, ...props }) {
+export function BotanicalSprig({
+  color = 'var(--color-sky-blue)',
+  className = '',
+  rotate = 0,
+  strokeWidth = 1.5,
+  ...props
+}) {
   return (
     <svg
       viewBox="0 0 100 100"
@@ -30,7 +36,7 @@ export function BotanicalSprig({ color = 'var(--color-sky-blue)', className = ''
       aria-hidden="true"
       {...props}
     >
-      <g fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round">
+      <g fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round">
         <path d="M50 95 C48 65 52 35 50 5" />
         <ellipse cx="38" cy="30" rx="12" ry="7" transform="rotate(-30 38 30)" />
         <ellipse cx="62" cy="45" rx="12" ry="7" transform="rotate(30 62 45)" />
