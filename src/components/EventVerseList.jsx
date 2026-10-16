@@ -42,22 +42,18 @@ export function EventVerseList({ verses, onAdd, onRemove, readOnly = false }) {
     <div>
       {verses.length === 0 && <p className="font-body text-sm text-black/40">No verses added yet.</p>}
 
-      <div className="flex flex-col gap-2">
-        {verses.map((entry) => {
+      <div className="flex flex-col">
+        {verses.map((entry, i) => {
           const expanded = expandedId === entry.id
           const state = cache[entry.id]
           return (
-            <div key={entry.id} className="rounded-card border border-black/10 bg-pure-white">
-              <button
-                type="button"
-                onClick={() => toggle(entry)}
-                className="flex w-full items-center justify-between px-3 py-2.5"
-              >
+            <div key={entry.id} className={i > 0 ? 'border-t border-black/5' : ''}>
+              <button type="button" onClick={() => toggle(entry)} className="flex w-full items-center justify-between py-2 text-left">
                 <span className="font-display text-base font-medium text-ink-black">{entry.reference}</span>
-                <span className="font-label text-xs text-black/40">{expanded ? '▲' : '▼'}</span>
+                <span className="font-label text-xs text-black/30">{expanded ? '▲' : '▼'}</span>
               </button>
               {expanded && (
-                <div className="border-t border-black/10 px-3 py-3">
+                <div className="pb-2.5">
                   {(!state || state.status === 'loading') && (
                     <p className="font-body text-sm text-black/40">Loading…</p>
                   )}
@@ -107,7 +103,7 @@ export function EventVerseList({ verses, onAdd, onRemove, readOnly = false }) {
             onClick={() => setAdding(true)}
             className="mt-3 font-label text-[11px] uppercase tracking-label text-deep-indigo"
           >
-            + Add new section
+            + Add new
           </button>
         ))}
     </div>
