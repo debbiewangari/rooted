@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { BotanicalSprig } from '../components/BotanicalLine'
 import { HamburgerMenu } from '../components/HamburgerMenu'
@@ -35,7 +35,10 @@ export function Home() {
   const [verse, setVerse] = useState(null)
   const [verseError, setVerseError] = useState(false)
   const [verseSaved, setVerseSaved] = useState(false)
+  const [verseExpanded, setVerseExpanded] = useState(false)
+  const [verseClamped, setVerseClamped] = useState(false)
   const scrollRef = useRef(null)
+  const quoteRef = useRef(null)
 
   useEffect(() => {
     // A tag and a theme are the same thing now — this catches any tag made
@@ -49,19 +52,20 @@ export function Home() {
       .then((v) => {
         setVerse(v)
         setVerseSaved(isVerseSaved(v.reference))
+        setVerseExpanded(false)
       })
       .catch(() => setVerseError(true))
   }, [])
 
   const homeThemes = themes.slice(0, MAX_HOME_THEMES)
 
-  // The scroll-snap container sometimes starts already scrolled past its own
-  // left padding (a browser snap-on-mount quirk), which shows the first card
-  // flush against the screen edge instead of lined up under the heading —
-  // force it back to 0 once the cards are in.
-  useLayoutEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollLeft = 0
-  }, [homeThemes.length])
+  // Measured against the clamped (3-line) height, so the toggle only shows
+  // up when the quote actually overflows it.
+  useEffect(() => {
+    const el = quoteRef.current
+    if (!el) return
+    setVerseClamped(el.scrollHeight > el.clientHeight + 1)
+  }, [verse])
 
   function handleThemeScroll() {
     const el = scrollRef.current
@@ -77,27 +81,27 @@ export function Home() {
 
   return (
     <div className="min-h-screen bg-white">
-      <div className="relative h-64 w-full overflow-hidden bg-warm-sand">
+      <div className="relative h-64 w-full overflow-hidden bg-gradient-to-b from-ink-black to-deep-indigo">
         <div className="absolute inset-0 flex items-center justify-center">
-          <BotanicalSprig className="h-28 w-28 opacity-40" color="var(--color-deep-indigo)" />
+          <BotanicalSprig className="h-28 w-28 opacity-20" color="var(--color-pure-white)" />
         </div>
 
         <header className="relative z-10 flex items-center justify-between px-6 pt-8">
-          <Link to="/" className="text-deep-indigo">
+          <Link to="/" className="text-pure-white">
             <Logo size={20} />
           </Link>
-          <div className="flex items-center gap-4 text-deep-indigo">
+          <div className="flex items-center gap-4 text-pure-white">
             <Link to="/bible" aria-label="Search the Bible">
               <SearchIcon />
             </Link>
-            <HamburgerMenu />
+            <HamburgerMenu light />
           </div>
         </header>
 
         <div className="relative z-10 px-6 pt-5">
-          <p className="font-label text-[10px] uppercase tracking-label text-black/40">{getGreeting()},</p>
-          <h1 className="mt-0.5 font-display text-xl font-semibold text-ink-black">{getName()}</h1>
-          <p className="mt-1 font-body text-xs text-black/60">Take a moment to be still in His presence.</p>
+          <p className="font-label text-[10px] uppercase tracking-label text-pure-white/60">{getGreeting()},</p>
+          <h1 className="mt-0.5 font-display text-xl font-semibold text-pure-white">{getName()}</h1>
+          <p className="mt-1 font-body text-xs text-pure-white/70">Take a moment to be still in His presence.</p>
         </div>
       </div>
 
@@ -118,7 +122,23 @@ export function Home() {
           </div>
           {verse && (
             <>
-              <p className="mt-2 font-body text-sm leading-relaxed text-ink-black">“{verse.text}”</p>
+              <p
+                ref={quoteRef}
+                className={`mt-2 font-body text-sm leading-relaxed text-ink-black ${
+                  verseExpanded ? '' : 'line-clamp-3'
+                }`}
+              >
+                “{verse.text}”
+              </p>
+              {verseClamped && (
+                <button
+                  type="button"
+                  onClick={() => setVerseExpanded((e) => !e)}
+                  className="mt-1 font-label text-[10px] uppercase tracking-label text-deep-indigo"
+                >
+                  {verseExpanded ? 'Show less' : 'Read more'}
+                </button>
+              )}
               <p className="mt-2 font-label text-[11px] uppercase tracking-label text-deep-indigo">
                 {verse.reference} · {verse.translation}
               </p>
@@ -149,6 +169,7 @@ export function Home() {
           ref={scrollRef}
           onScroll={handleThemeScroll}
           className="no-scrollbar mt-4 flex snap-x gap-4 overflow-x-auto px-6"
+          style={{ scrollPaddingLeft: 24, scrollPaddingRight: 24 }}
         >
           {homeThemes.length === 0 && (
             <Link

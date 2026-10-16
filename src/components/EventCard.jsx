@@ -10,32 +10,32 @@ function daysUntil(dateKey) {
   return Math.round((start - today) / 86400000)
 }
 
-function Cta({ event, progress }) {
+function StatusPill({ event, progress }) {
   if (progress.status === 'ongoing') {
     return (
-      <span className="inline-flex items-center gap-1 rounded-pill bg-deep-indigo px-3 py-1 font-label text-[10px] uppercase tracking-label text-pure-white">
-        Continue <span aria-hidden="true">›</span>
+      <span className="inline-block rounded-pill bg-deep-indigo px-3 py-1 font-label text-[10px] uppercase tracking-label text-pure-white">
+        Continue
       </span>
     )
   }
   if (progress.status === 'completed') {
     return (
-      <span className="inline-flex items-center gap-1 rounded-pill bg-black/5 px-3 py-1 font-label text-[10px] uppercase tracking-label text-black/40">
-        Completed <span aria-hidden="true">›</span>
+      <span className="inline-block rounded-pill bg-black/5 px-3 py-1 font-label text-[10px] uppercase tracking-label text-black/40">
+        Completed
       </span>
     )
   }
   const inDays = daysUntil(event.startDate)
   if (inDays <= 14) {
     return (
-      <span className="inline-flex items-center gap-1 rounded-pill bg-burnt-orange/10 px-3 py-1 font-label text-[10px] uppercase tracking-label text-burnt-orange">
-        Starts in {inDays} day{inDays === 1 ? '' : 's'} <span aria-hidden="true">›</span>
+      <span className="inline-block rounded-pill bg-burnt-orange/10 px-3 py-1 font-label text-[10px] uppercase tracking-label text-burnt-orange">
+        Starts in {inDays} day{inDays === 1 ? '' : 's'}
       </span>
     )
   }
   return (
-    <span className="inline-flex items-center gap-1 rounded-pill bg-sky-blue/10 px-3 py-1 font-label text-[10px] uppercase tracking-label text-deep-indigo">
-      Upcoming <span aria-hidden="true">›</span>
+    <span className="inline-block rounded-pill bg-sky-blue/10 px-3 py-1 font-label text-[10px] uppercase tracking-label text-deep-indigo">
+      Upcoming
     </span>
   )
 }
@@ -59,10 +59,11 @@ export function EventCard({ event, progress }) {
               />
             </div>
           )}
+          <div className="mt-2">
+            <StatusPill event={event} progress={progress} />
+          </div>
         </div>
-        <div className="shrink-0">
-          <Cta event={event} progress={progress} />
-        </div>
+        <span className="shrink-0 font-label text-[10px] uppercase tracking-label text-deep-indigo">→</span>
       </div>
     </Link>
   )
