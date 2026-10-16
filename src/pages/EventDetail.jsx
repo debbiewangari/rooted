@@ -126,7 +126,7 @@ export function EventDetail() {
           <p className="mt-2 font-display text-lg font-semibold text-ink-black">
             {progress.status === 'upcoming' ? `Starts ${event.startDate}` : `Day ${progress.dayIndex} of ${progress.totalDays}`}
           </p>
-          <div className="mt-2 h-2 w-full overflow-hidden rounded-pill bg-cream-paper">
+          <div className="mt-2 h-2 w-full overflow-hidden rounded-pill bg-black/8">
             <div
               className="h-full rounded-pill bg-deep-indigo transition-all"
               style={{ width: `${progress.percent}%` }}

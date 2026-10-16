@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { BotanicalSprig } from '../components/BotanicalLine'
 import { HamburgerMenu } from '../components/HamburgerMenu'
 import { Logo } from '../components/Logo'
 import { UpcomingEvents } from '../components/UpcomingEvents'
@@ -10,15 +11,6 @@ import { backfillThemesFromTags, listThemes } from '../lib/db'
 
 const THEME_CARD_WIDTH = 176 + 16 // w-44 + gap-4
 const MAX_HOME_THEMES = 3
-
-function MountainSkyline({ className = '' }) {
-  return (
-    <svg viewBox="0 0 400 140" preserveAspectRatio="none" className={className} aria-hidden="true">
-      <path d="M0 110 L60 55 L100 85 L150 35 L190 70 L230 40 L270 90 L320 60 L400 100 L400 140 L0 140 Z" fill="rgba(17,17,17,0.14)" />
-      <path d="M0 130 L80 85 L130 115 L180 70 L230 110 L290 75 L340 120 L400 95 L400 140 L0 140 Z" fill="rgba(17,17,17,0.24)" />
-    </svg>
-  )
-}
 
 function SearchIcon() {
   return (
@@ -63,6 +55,14 @@ export function Home() {
 
   const homeThemes = themes.slice(0, MAX_HOME_THEMES)
 
+  // The scroll-snap container sometimes starts already scrolled past its own
+  // left padding (a browser snap-on-mount quirk), which shows the first card
+  // flush against the screen edge instead of lined up under the heading —
+  // force it back to 0 once the cards are in.
+  useLayoutEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollLeft = 0
+  }, [homeThemes.length])
+
   function handleThemeScroll() {
     const el = scrollRef.current
     if (!el) return
@@ -77,26 +77,27 @@ export function Home() {
 
   return (
     <div className="min-h-screen bg-white">
-      <div className="relative h-64 w-full overflow-hidden bg-gradient-to-b from-deep-indigo via-burnt-orange to-honey-gold">
-        <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-black/5" />
-        <MountainSkyline className="absolute bottom-0 left-0 h-20 w-full" />
+      <div className="relative h-64 w-full overflow-hidden bg-warm-sand">
+        <div className="absolute inset-0 flex items-center justify-center">
+          <BotanicalSprig className="h-28 w-28 opacity-40" color="var(--color-deep-indigo)" />
+        </div>
 
         <header className="relative z-10 flex items-center justify-between px-6 pt-8">
-          <Link to="/" className="text-pure-white">
+          <Link to="/" className="text-deep-indigo">
             <Logo size={20} />
           </Link>
-          <div className="flex items-center gap-4 text-pure-white">
+          <div className="flex items-center gap-4 text-deep-indigo">
             <Link to="/bible" aria-label="Search the Bible">
               <SearchIcon />
             </Link>
-            <HamburgerMenu light />
+            <HamburgerMenu />
           </div>
         </header>
 
         <div className="relative z-10 px-6 pt-5">
-          <p className="font-label text-[10px] uppercase tracking-label text-pure-white/70">{getGreeting()},</p>
-          <h1 className="mt-0.5 font-display text-xl font-semibold text-pure-white">{getName()}</h1>
-          <p className="mt-1 font-body text-xs text-pure-white/80">Take a moment to be still in His presence.</p>
+          <p className="font-label text-[10px] uppercase tracking-label text-black/40">{getGreeting()},</p>
+          <h1 className="mt-0.5 font-display text-xl font-semibold text-ink-black">{getName()}</h1>
+          <p className="mt-1 font-body text-xs text-black/60">Take a moment to be still in His presence.</p>
         </div>
       </div>
 
@@ -117,7 +118,7 @@ export function Home() {
           </div>
           {verse && (
             <>
-              <p className="mt-2 font-display text-base leading-snug text-ink-black">“{verse.text}”</p>
+              <p className="mt-2 font-body text-sm leading-relaxed text-ink-black">“{verse.text}”</p>
               <p className="mt-2 font-label text-[11px] uppercase tracking-label text-deep-indigo">
                 {verse.reference} · {verse.translation}
               </p>

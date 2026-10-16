@@ -43,8 +43,8 @@ function Cta({ event, progress }) {
 export function EventCard({ event, progress }) {
   return (
     <Link to={`/events/${event.id}`}>
-      <div className="flex items-start gap-3 rounded-card border border-black/10 bg-pure-white px-4 py-3">
-        <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: categoryHex(event) }} />
+      <div className="flex items-center gap-3 rounded-card border border-black/10 bg-pure-white px-4 py-3">
+        <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: categoryHex(event) }} />
         <div className="min-w-0 flex-1">
           <p className="truncate font-display text-base font-medium text-ink-black">{event.title}</p>
           <p className="font-label text-[10px] uppercase tracking-label text-black/40">
@@ -52,16 +52,16 @@ export function EventCard({ event, progress }) {
             {formatShortRange(event.startDate, event.endDate)}
           </p>
           {progress.status === 'ongoing' && (
-            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-pill bg-cream-paper">
+            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-pill bg-black/8">
               <div
                 className="h-full rounded-pill bg-deep-indigo transition-all"
                 style={{ width: `${progress.percent}%` }}
               />
             </div>
           )}
-          <div className="mt-2">
-            <Cta event={event} progress={progress} />
-          </div>
+        </div>
+        <div className="shrink-0">
+          <Cta event={event} progress={progress} />
         </div>
       </div>
     </Link>
