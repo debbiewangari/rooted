@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { EventCard } from '../components/EventCard'
-import { FilledButton } from '../components/Button'
-import { getEventProgress } from '../lib/calendarUtils'
+import { FilledButton, OutlinedButton } from '../components/Button'
+import { getEventProgress, todayKey } from '../lib/calendarUtils'
 import { listCalendarEvents } from '../lib/db'
 
 const TABS = [
@@ -25,14 +25,18 @@ export function Events() {
 
   return (
     <div className="min-h-screen px-6 pt-10 pb-6">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="font-label text-xs uppercase tracking-label text-black/40">Challenges</p>
-          <h1 className="mt-1 font-display text-2xl font-semibold text-ink-black">Events</h1>
-        </div>
-        <FilledButton to="/calendar" className="shrink-0 px-5 py-3 text-[11px]">
-          View in Calendar
+      <div>
+        <p className="font-label text-xs uppercase tracking-label text-black/40">Challenges</p>
+        <h1 className="mt-1 font-display text-2xl font-semibold text-ink-black">Events</h1>
+      </div>
+
+      <div className="mt-4 flex gap-2">
+        <FilledButton to={`/calendar/${todayKey()}`} className="px-4 py-2 text-xs">
+          Add new
         </FilledButton>
+        <OutlinedButton to="/calendar" className="px-4 py-2 text-xs">
+          View in Calendar
+        </OutlinedButton>
       </div>
 
       <div className="mt-5 flex rounded-pill border border-black/10 bg-pure-white p-1">

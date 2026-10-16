@@ -4,24 +4,22 @@ import { HamburgerMenu } from '../components/HamburgerMenu'
 import { Logo } from '../components/Logo'
 import { UpcomingEvents } from '../components/UpcomingEvents'
 import { fetchDailyVerse } from '../lib/dailyVerse'
-import { tagColor } from '../lib/library'
 import { getGreeting, getName } from '../lib/profile'
-import { listTags, listThemes } from '../lib/db'
+import { backfillThemesFromTags, listThemes } from '../lib/db'
 
 const THEME_CARD_WIDTH = 176 + 16 // w-44 + gap-4
-const MAX_HOME_TAGS = 3
 
 export function Home() {
   const [themes, setThemes] = useState([])
   const [activeTheme, setActiveTheme] = useState(0)
-  const [tags, setTags] = useState([])
   const [verse, setVerse] = useState(null)
   const [verseError, setVerseError] = useState(false)
   const scrollRef = useRef(null)
 
   useEffect(() => {
-    listThemes().then(setThemes)
-    listTags().then(setTags)
+    // A tag and a theme are the same thing now — this catches any tag made
+    // before that was true, so it still shows up here with its own card.
+    backfillThemesFromTags().then(() => listThemes().then(setThemes))
     fetchDailyVerse()
       .then(setVerse)
       .catch(() => setVerseError(true))
@@ -31,30 +29,8 @@ export function Home() {
     const el = scrollRef.current
     if (!el) return
     const index = Math.round(el.scrollLeft / THEME_CARD_WIDTH)
-    setActiveTheme(Math.min(Math.max(index, 0), combined.length - 1))
+    setActiveTheme(Math.min(Math.max(index, 0), themes.length - 1))
   }
-
-  // One combined row: curated scripture-card Themes plus Library tags,
-  // rendered with the same card shape so "Explore by Themes" isn't split
-  // across two homepage sections.
-  const combined = [
-    ...themes.map((t) => ({
-      kind: 'theme',
-      key: `theme-${t.id}`,
-      link: `/themes/${t.id}`,
-      title: t.title,
-      subtitle: t.subtitle,
-      reference: t.reference,
-      imageUrl: t.imageUrl,
-    })),
-    ...tags.slice(0, MAX_HOME_TAGS).map((t, i) => ({
-      kind: 'tag',
-      key: `tag-${t.id}`,
-      link: `/journal?tag=${encodeURIComponent(t.name)}`,
-      title: t.name,
-      color: tagColor(i),
-    })),
-  ]
 
   return (
     <div className="min-h-screen bg-white">
@@ -106,7 +82,7 @@ export function Home() {
           onScroll={handleThemeScroll}
           className="no-scrollbar mt-4 flex snap-x gap-4 overflow-x-auto px-6"
         >
-          {combined.length === 0 && (
+          {themes.length === 0 && (
             <Link
               to="/themes"
               className="flex h-64 w-44 shrink-0 snap-start flex-col items-center justify-center gap-2 rounded-card border border-dashed border-black/15 bg-white"
@@ -116,35 +92,30 @@ export function Home() {
             </Link>
           )}
 
-          {combined.map((item, i) => (
-            <Link key={item.key} to={item.link} className="w-44 shrink-0 snap-start">
-              <div
-                className="relative h-64 w-44 overflow-hidden rounded-card bg-mist shadow-xl"
-                style={item.kind === 'tag' ? { backgroundColor: item.color } : undefined}
-              >
-                {item.kind === 'theme' && item.imageUrl && (
-                  <img src={item.imageUrl} alt="" className="h-full w-full object-cover" />
-                )}
+          {themes.map((theme, i) => (
+            <Link key={theme.id} to={`/themes/${theme.id}`} className="w-44 shrink-0 snap-start">
+              <div className="relative h-64 w-44 overflow-hidden rounded-card bg-mist shadow-xl">
+                {theme.imageUrl && <img src={theme.imageUrl} alt="" className="h-full w-full object-cover" />}
                 <span className="absolute left-3 top-3 rounded-pill bg-black/35 px-2 py-0.5 font-label text-[10px] text-pure-white">
                   {String(i + 1).padStart(2, '0')}
                 </span>
               </div>
-              <p className="mt-2 font-display text-base font-medium text-ink-black">{item.title}</p>
-              {item.subtitle && <p className="font-body text-xs text-black/50">{item.subtitle}</p>}
-              {item.reference && (
+              <p className="mt-2 font-display text-base font-medium text-ink-black">{theme.title}</p>
+              {theme.subtitle && <p className="font-body text-xs text-black/50">{theme.subtitle}</p>}
+              {theme.reference && (
                 <p className="mt-1 font-label text-[10px] uppercase tracking-label text-deep-indigo">
-                  {item.reference}
+                  {theme.reference}
                 </p>
               )}
             </Link>
           ))}
         </div>
 
-        {combined.length > 1 && (
+        {themes.length > 1 && (
           <div className="mt-3 flex justify-center gap-1.5">
-            {combined.map((item, i) => (
+            {themes.map((theme, i) => (
               <span
-                key={item.key}
+                key={theme.id}
                 className={`h-1.5 w-1.5 rounded-full transition-colors ${
                   i === activeTheme ? 'bg-deep-indigo' : 'bg-black/15'
                 }`}

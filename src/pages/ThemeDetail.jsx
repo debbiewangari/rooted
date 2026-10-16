@@ -4,7 +4,8 @@ import { Card } from '../components/Card'
 import { OutlinedButton } from '../components/Button'
 import { VerseList } from '../components/VerseList'
 import { DEFAULT_TRANSLATION, TRANSLATIONS, fetchPassage } from '../lib/bible'
-import { getTheme } from '../lib/db'
+import { LIBRARY_TYPES, formatRelativeTime } from '../lib/library'
+import { getTheme, listEntriesByTag } from '../lib/db'
 
 const TRANSLATION_KEY = 'rooted:translation'
 
@@ -16,6 +17,7 @@ export function ThemeDetail() {
   const [passage, setPassage] = useState(null)
   const [status, setStatus] = useState('loading') // loading | idle | error | not-found
   const [error, setError] = useState('')
+  const [groupedEntries, setGroupedEntries] = useState(null)
 
   useEffect(() => {
     getTheme(id).then((row) => {
@@ -24,6 +26,16 @@ export function ThemeDetail() {
         return
       }
       setTheme(row)
+
+      listEntriesByTag(row.title).then((entries) => {
+        const groups = {}
+        entries.forEach((entry) => {
+          const key = entry.type || 'reflection'
+          groups[key] = groups[key] || []
+          groups[key].push(entry)
+        })
+        setGroupedEntries(groups)
+      })
 
       if (!row.reference) {
         setStatus('no-reference')
@@ -116,15 +128,41 @@ export function ThemeDetail() {
 
             <div className="mt-4">
               <OutlinedButton
-                to={`/journal/new?title=${encodeURIComponent(theme.title)}&ref=${encodeURIComponent(
+                to={`/journal/new?ref=${encodeURIComponent(
                   `${passage.reference} (${translationName})`,
-                )}`}
+                )}&tag=${encodeURIComponent(theme.title)}`}
                 className="w-full text-xs"
               >
                 Reflect in journal
               </OutlinedButton>
             </div>
           </Card>
+        )}
+
+        {groupedEntries && Object.keys(groupedEntries).length > 0 && (
+          <div className="mt-4 flex flex-col gap-4">
+            {LIBRARY_TYPES.filter((t) => groupedEntries[t.id]?.length).map((t) => (
+              <Card key={t.id}>
+                <p className="font-display text-base font-semibold text-ink-black">
+                  {t.label} for {theme.title}
+                </p>
+                <div className="mt-3 flex flex-col gap-2.5">
+                  {groupedEntries[t.id].map((entry) => (
+                    <Link
+                      key={entry.id}
+                      to={`/journal/${entry.id}`}
+                      className="flex items-baseline justify-between gap-3 border-b border-black/5 pb-2.5 last:border-0 last:pb-0"
+                    >
+                      <span className="truncate font-body text-sm text-ink-black">{entry.title}</span>
+                      <span className="shrink-0 font-label text-[10px] uppercase tracking-label text-black/40">
+                        {formatRelativeTime(entry.updatedAt)}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              </Card>
+            ))}
+          </div>
         )}
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { EventVerseList } from '../components/EventVerseList'
 import { RichTextEditor } from '../components/RichTextEditor'
@@ -40,8 +40,12 @@ export function EventDay() {
   const [activeTab, setActiveTab] = useState('verses')
   const [fields, setFields] = useState(EMPTY_FIELDS)
   const [savedAt, setSavedAt] = useState(null)
+  const [saving, setSaving] = useState(false)
   const [editingFocus, setEditingFocus] = useState(false)
   const [editingMinister, setEditingMinister] = useState(false)
+  // Guards the autosave effect below from firing the instant a day's note
+  // loads — only real edits (which flip this false) should trigger a save.
+  const skipAutosaveRef = useRef(true)
 
   useEffect(() => {
     getCalendarEvent(id).then((row) => {
@@ -69,6 +73,7 @@ export function EventDay() {
   }, [id])
 
   useEffect(() => {
+    skipAutosaveRef.current = true
     getEventNote(id, date).then((row) => {
       setFields({
         focus: row?.focus || '',
@@ -89,8 +94,26 @@ export function EventDay() {
   async function persist(next) {
     await setEventNote(id, date, next)
     setSavedAt(Date.now())
+    setSaving(false)
     refreshNoted()
   }
+
+  // Debounced autosave — the single source of truth for persisting this
+  // day's note, so typing never depends on an onBlur firing at the right
+  // moment (that was the bug: a blur handler's closure could race a
+  // just-typed keystroke and save a stale, emptier value).
+  useEffect(() => {
+    if (skipAutosaveRef.current) {
+      skipAutosaveRef.current = false
+      return
+    }
+    setSaving(true)
+    const timeout = setTimeout(() => {
+      persist(fields)
+    }, 700)
+    return () => clearTimeout(timeout)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fields])
 
   function switchTab(tabId) {
     persist(fields)
@@ -105,12 +128,14 @@ export function EventDay() {
   async function handleAddVerse(reference) {
     const next = { ...fields, verses: [...fields.verses, { id: crypto.randomUUID(), reference }] }
     setFields(next)
+    skipAutosaveRef.current = true
     await persist(next)
   }
 
   async function handleRemoveVerse(verseId) {
     const next = { ...fields, verses: fields.verses.filter((v) => v.id !== verseId) }
     setFields(next)
+    skipAutosaveRef.current = true
     await persist(next)
   }
 
@@ -200,10 +225,7 @@ export function EventDay() {
               autoFocus
               value={fields.focus}
               onChange={(e) => setFields((f) => ({ ...f, focus: e.target.value }))}
-              onBlur={() => {
-                persist(fields)
-                setEditingFocus(false)
-              }}
+              onBlur={() => setEditingFocus(false)}
               placeholder="What's the focus for today?"
               rows={2}
               className="mt-1 w-full resize-none rounded-card border border-black/10 bg-pure-white px-3 py-2 font-body text-sm text-black/80 placeholder:text-black/30 focus:outline-none"
@@ -226,10 +248,7 @@ export function EventDay() {
               autoFocus
               value={fields.minister}
               onChange={(e) => setFields((f) => ({ ...f, minister: e.target.value }))}
-              onBlur={() => {
-                persist(fields)
-                setEditingMinister(false)
-              }}
+              onBlur={() => setEditingMinister(false)}
               placeholder="e.g. Pastor Nathaniel Bassey"
               className="mt-1 w-full rounded-card border border-black/10 bg-pure-white px-3 py-2 font-body text-sm placeholder:text-black/30 focus:outline-none"
             />
@@ -269,7 +288,6 @@ export function EventDay() {
           <RichTextEditor
             value={fields.notes}
             onChange={(html) => setFields((f) => ({ ...f, notes: html }))}
-            onBlur={() => persist(fields)}
             placeholder="Write your notes, reflections or what stood out to you today…"
           />
         )}
@@ -278,12 +296,14 @@ export function EventDay() {
           <RichTextEditor
             value={fields.prayerPoints}
             onChange={(html) => setFields((f) => ({ ...f, prayerPoints: html }))}
-            onBlur={() => persist(fields)}
             placeholder="What to pray for…"
           />
         )}
 
-        {savedAt && (
+        {saving && (
+          <p className="mt-2 font-label text-[10px] uppercase tracking-label text-black/30">Saving…</p>
+        )}
+        {!saving && savedAt && (
           <p className="mt-2 font-label text-[10px] uppercase tracking-label text-black/30">
             Saved {new Date(savedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </p>

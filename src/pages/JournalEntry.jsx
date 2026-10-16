@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { FilledButton, OutlinedButton } from '../components/Button'
 import { EntrySections } from '../components/EntrySections'
@@ -13,15 +13,24 @@ export function JournalEntry() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
 
+  const [entryId, setEntryId] = useState(id || null)
   const [title, setTitle] = useState(searchParams.get('title') || '')
   const [sections, setSections] = useState([])
   const [reference, setReference] = useState(searchParams.get('ref') || '')
   const [type, setType] = useState(searchParams.get('type') || 'reflection')
-  const [tags, setTags] = useState([])
+  const [tags, setTags] = useState(() => {
+    const tag = searchParams.get('tag')
+    return tag ? [tag] : []
+  })
   const [allTags, setAllTags] = useState([])
   const [newTagName, setNewTagName] = useState('')
   const [referenceQuote, setReferenceQuote] = useState('')
   const [loading, setLoading] = useState(Boolean(id))
+  const [saving, setSaving] = useState(false)
+  const [savedAt, setSavedAt] = useState(null)
+  // Guards the autosave effect from firing the instant an existing entry
+  // loads — only real edits (which flip this false) should trigger a save.
+  const skipAutosaveRef = useRef(Boolean(id))
 
   useEffect(() => {
     listTags().then(setAllTags)
@@ -29,19 +38,15 @@ export function JournalEntry() {
 
   useEffect(() => {
     if (!id) return
+    skipAutosaveRef.current = true
     getEntry(id).then((entry) => {
       if (!entry) {
         navigate('/journal', { replace: true })
         return
       }
+      setEntryId(entry.id)
       setTitle(entry.title)
-      // Entries saved before the sections editor existed just have a plain
-      // `body` — fold it into a single Notes section rather than losing it.
-      if (entry.sections?.length) {
-        setSections(entry.sections)
-      } else if (entry.body) {
-        setSections([{ id: crypto.randomUUID(), type: 'notes', data: { html: entry.body } }])
-      }
+      setSections(entry.sections || [])
       setReference(entry.reference || '')
       setType(entry.type || 'reflection')
       setTags(entry.tags || [])
@@ -60,6 +65,35 @@ export function JournalEntry() {
       .catch(() => setReferenceQuote(''))
   }, [reference])
 
+  // Autosave — creates the entry on the first meaningful edit (a title or a
+  // section), then updates it on every edit after that. No explicit Save
+  // tap is required for content to be kept.
+  async function autosave(current) {
+    if (entryId) {
+      await updateEntry(entryId, current)
+      setSavedAt(Date.now())
+      return
+    }
+    if (!current.title.trim() && current.sections.length === 0) return
+    const created = await createEntry(current)
+    setEntryId(created.id)
+    setSavedAt(Date.now())
+    navigate(`/journal/${created.id}`, { replace: true })
+  }
+
+  useEffect(() => {
+    if (skipAutosaveRef.current) {
+      skipAutosaveRef.current = false
+      return
+    }
+    setSaving(true)
+    const timeout = setTimeout(() => {
+      autosave({ title, sections, reference: reference || null, type, tags }).finally(() => setSaving(false))
+    }, 700)
+    return () => clearTimeout(timeout)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [title, sections, reference, type, tags])
+
   function toggleTag(name) {
     setTags((t) => (t.includes(name) ? t.filter((x) => x !== name) : [...t, name]))
   }
@@ -74,17 +108,16 @@ export function JournalEntry() {
 
   async function handleSave(e) {
     e.preventDefault()
-    if (id) {
-      await updateEntry(id, { title, sections, body: '', reference: reference || null, type, tags })
-    } else {
-      await createEntry({ title, sections, reference, type, tags })
-    }
+    await autosave({ title, sections, reference: reference || null, type, tags })
     navigate('/journal')
   }
 
   async function handleDelete() {
-    if (!id) return
-    await deleteEntry(id)
+    if (!entryId) {
+      navigate('/journal')
+      return
+    }
+    await deleteEntry(entryId)
     navigate('/journal')
   }
 
@@ -95,7 +128,7 @@ export function JournalEntry() {
   return (
     <form onSubmit={handleSave} className="flex min-h-screen flex-col px-6 pt-10 pb-6">
       <p className="font-label text-xs uppercase tracking-label text-black/40">
-        {id ? 'Edit entry' : 'New entry'}
+        {entryId ? 'Edit entry' : 'New entry'}
       </p>
 
       <input
@@ -180,11 +213,20 @@ export function JournalEntry() {
         <EntrySections sections={sections} onChange={setSections} />
       </div>
 
-      <div className="mt-6 flex gap-3">
+      <div className="mt-2">
+        {saving && <p className="font-label text-[10px] uppercase tracking-label text-black/30">Saving…</p>}
+        {!saving && savedAt && (
+          <p className="font-label text-[10px] uppercase tracking-label text-black/30">
+            Saved {new Date(savedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </p>
+        )}
+      </div>
+
+      <div className="mt-4 flex gap-3">
         <FilledButton type="submit" className="flex-1">
-          Save entry
+          Done
         </FilledButton>
-        {id && (
+        {entryId && (
           <OutlinedButton type="button" onClick={handleDelete} className="flex-1">
             Delete
           </OutlinedButton>

@@ -107,7 +107,10 @@ export async function createTag(name) {
   const trimmed = name.trim()
   const existing = await listTags()
   const match = existing.find((t) => t.name.toLowerCase() === trimmed.toLowerCase())
-  if (match) return match
+  if (match) {
+    await ensureThemeForTag(trimmed)
+    return match
+  }
 
   const userId = await getUserId()
   const { data, error } = await supabase
@@ -116,6 +119,7 @@ export async function createTag(name) {
     .select()
     .single()
   if (error) throw error
+  await ensureThemeForTag(trimmed)
   return { id: data.id, name: data.name, createdAt: toMs(data.created_at) }
 }
 
@@ -194,6 +198,51 @@ export async function updateTheme(id, { title, subtitle, reference, imageBlob, r
   const { data, error } = await supabase.from('themes').update(payload).eq('id', id).select().single()
   if (error) throw error
   return fromThemeRow(data)
+}
+
+// A tag and a theme are the same idea now — tagging an entry "Provision"
+// should always have a themed card to open, even for tags created before
+// this existed. Looked up case-insensitively since tag names are too.
+export async function ensureThemeForTag(name) {
+  const trimmed = name.trim()
+  const { data: existing, error: findError } = await supabase
+    .from('themes')
+    .select('*')
+    .ilike('title', trimmed)
+    .maybeSingle()
+  if (findError) throw findError
+  if (existing) return fromThemeRow(existing)
+
+  const userId = await getUserId()
+  const { data, error } = await supabase
+    .from('themes')
+    .insert({ user_id: userId, title: trimmed, subtitle: '', reference: '' })
+    .select()
+    .single()
+  if (error) throw error
+  return fromThemeRow(data)
+}
+
+// Self-healing backfill for tags created before themes/tags were unified —
+// cheap to call on every Home load since it's a no-op once caught up.
+export async function backfillThemesFromTags() {
+  const tags = await listTags()
+  for (const tag of tags) {
+    await ensureThemeForTag(tag.name)
+  }
+}
+
+// Everything (any Library type) tagged with a given theme's name, newest
+// first — powers the "Prayers for X" / "Studies for X" groups on a theme's
+// detail page.
+export async function listEntriesByTag(tagName) {
+  const { data, error } = await supabase
+    .from('journal_entries')
+    .select('*')
+    .contains('tags', [tagName])
+    .order('updated_at', { ascending: false })
+  if (error) throw error
+  return data.map(fromEntryRow)
 }
 
 export async function deleteTheme(id) {
