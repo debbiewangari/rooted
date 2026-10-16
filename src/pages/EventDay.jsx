@@ -12,6 +12,21 @@ import {
   setEventNote,
 } from '../lib/db'
 
+// A brand-new day starts with these three pre-added (still empty, so they
+// autosave nothing until actually edited) rather than a blank page the
+// user has to build up from scratch every time.
+const DEFAULT_SECTION_TYPES = [
+  { typeId: 'focus', data: { value: '' } },
+  { typeId: 'verses', data: { verses: [] } },
+  { typeId: 'prayer', data: { html: '' } },
+]
+
+function defaultSections() {
+  return DEFAULT_SECTION_TYPES.map((s) => ({ id: crypto.randomUUID(), typeId: s.typeId, data: { ...s.data } }))
+}
+
+const EMPTY_SECTIONS = []
+
 function CalendarGlyph() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#234386" strokeWidth="1.8">
@@ -27,13 +42,16 @@ export function EventDay() {
 
   const [event, setEvent] = useState(null)
   const [notFound, setNotFound] = useState(false)
-  const [sections, setSections] = useState([])
+  const [sections, setSections] = useState(EMPTY_SECTIONS)
   const [typeDefs, setTypeDefs] = useState(builtInDaySectionTypes())
   const [savedAt, setSavedAt] = useState(null)
   const [saving, setSaving] = useState(false)
-  // Guards the autosave effect below from firing the instant a day's note
-  // loads — only real edits (which flip this false) should trigger a save.
-  const skipAutosaveRef = useRef(true)
+  // The sections value as loaded, so the autosave effect can tell a real
+  // edit apart from merely opening a day — comparing against a remembered
+  // reference (rather than a one-shot "skip the next run" flag) can't miss
+  // an edit or fire early regardless of effect ordering or how many times
+  // an effect happens to re-run (e.g. React StrictMode's double-invoke).
+  const loadedSectionsRef = useRef(EMPTY_SECTIONS)
 
   useEffect(() => {
     getCalendarEvent(id).then((row) => {
@@ -56,11 +74,24 @@ export function EventDay() {
   }, [])
 
   useEffect(() => {
-    skipAutosaveRef.current = true
+    let cancelled = false
     getEventNote(id, date).then((row) => {
-      setSections(row?.sections || [])
+      // Guards against a stale load finishing after a newer one started
+      // (fast prev/next taps, or an effect re-run) — without this, a
+      // second resolution could follow the first and look like a real
+      // edit to the autosave effect below, saving unintended defaults.
+      if (cancelled) return
+      // Only a day that's never been saved at all gets the defaults — once
+      // a row exists, an empty sections list means the user cleared it on
+      // purpose, so leave it alone.
+      const loaded = row ? row.sections || EMPTY_SECTIONS : defaultSections()
+      loadedSectionsRef.current = loaded
+      setSections(loaded)
       setSavedAt(row?.updatedAt || null)
     })
+    return () => {
+      cancelled = true
+    }
   }, [id, date])
 
   const dates = useMemo(() => (event ? enumerateDates(event.startDate, event.endDate) : []), [event])
@@ -77,13 +108,11 @@ export function EventDay() {
   // moment (that was the bug: a blur handler's closure could race a
   // just-typed keystroke and save a stale, emptier value).
   useEffect(() => {
-    if (skipAutosaveRef.current) {
-      skipAutosaveRef.current = false
-      return
-    }
+    if (sections === loadedSectionsRef.current) return
     setSaving(true)
     const timeout = setTimeout(() => {
       persist(sections)
+      loadedSectionsRef.current = sections
     }, 700)
     return () => clearTimeout(timeout)
     // eslint-disable-next-line react-hooks/exhaustive-deps
