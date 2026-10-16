@@ -4,6 +4,7 @@ import { Home } from './pages/Home'
 import { Library } from './pages/Library'
 import { JournalEntry } from './pages/JournalEntry'
 import { Bible } from './pages/Bible'
+import { SavedVerses } from './pages/SavedVerses'
 import { Themes } from './pages/Themes'
 import { ThemeNew } from './pages/ThemeNew'
 import { ThemeDetail } from './pages/ThemeDetail'
@@ -38,6 +39,7 @@ export default function App() {
         <Route path="/journal/new" element={<JournalEntry />} />
         <Route path="/journal/:id" element={<JournalEntry />} />
         <Route path="/bible" element={<Bible />} />
+        <Route path="/bible/saved" element={<SavedVerses />} />
         <Route path="/themes" element={<Themes />} />
         <Route path="/themes/new" element={<ThemeNew />} />
         <Route path="/themes/:id" element={<ThemeDetail />} />

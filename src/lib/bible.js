@@ -1,13 +1,5 @@
 import { cachePassage, getCachedPassage, listCachedPassages } from './bibleCache'
 
-export const QUICK_PICKS = [
-  'John 3:16',
-  'Psalm 23',
-  'Philippians 4:6-7',
-  'Romans 8:28',
-  'Proverbs 3:5-6',
-]
-
 // bible-api.com only serves public-domain translations (no key required).
 // Copyrighted versions (NIV, NKJV, AMP, ESV, ...) need a licensed provider
 // such as API.Bible and are out of scope here.

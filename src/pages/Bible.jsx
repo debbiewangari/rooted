@@ -1,12 +1,49 @@
 import { useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
-import { Card } from '../components/Card'
-import { FilledButton, OutlinedButton } from '../components/Button'
+import { Link, useSearchParams } from 'react-router-dom'
+import { BotanicalSprig } from '../components/BotanicalLine'
+import { HamburgerMenu } from '../components/HamburgerMenu'
+import { Logo } from '../components/Logo'
 import { VerseList } from '../components/VerseList'
-import { DEFAULT_TRANSLATION, QUICK_PICKS, TRANSLATIONS, fetchPassage } from '../lib/bible'
+import { DEFAULT_TRANSLATION, TRANSLATIONS, fetchPassage, recentPassages } from '../lib/bible'
 import { NEW_TESTAMENT, OLD_TESTAMENT } from '../lib/bibleBooks'
+import { getProfile, listHighlights } from '../lib/db'
 
 const TRANSLATION_KEY = 'rooted:translation'
+const DEFAULT_HERO_IMAGE = '/hero-sunset.jpg'
+
+function SearchIcon({ className = '' }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className}>
+      <circle cx="11" cy="11" r="7" />
+      <path d="m20 20-3.5-3.5" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function ChevronDown() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="m6 9 6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function BookOpenIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#234386" strokeWidth="1.8">
+      <path d="M4 5.5c2.5-1 5-1 8 0v14c-3-1-5.5-1-8 0z" />
+      <path d="M20 5.5c-2.5-1-5-1-8 0v14c3-1 5.5-1 8 0z" />
+    </svg>
+  )
+}
+
+function BookmarkIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#234386" strokeWidth="1.8">
+      <path d="M6 4h12v16l-6-4-6 4z" strokeLinejoin="round" />
+    </svg>
+  )
+}
 
 export function Bible() {
   const [searchParams] = useSearchParams()
@@ -14,13 +51,18 @@ export function Bible() {
   const [translation, setTranslation] = useState(
     () => localStorage.getItem(TRANSLATION_KEY) || DEFAULT_TRANSLATION,
   )
+  const [versionOpen, setVersionOpen] = useState(false)
   const [passage, setPassage] = useState(null)
   const [status, setStatus] = useState('idle') // idle | loading | error
   const [error, setError] = useState('')
   const [fromCache, setFromCache] = useState(false)
 
   const [testament, setTestament] = useState('OT')
-  const [activeBook, setActiveBook] = useState(null)
+  const [expandedBook, setExpandedBook] = useState(null)
+
+  const [heroImageUrl, setHeroImageUrl] = useState(DEFAULT_HERO_IMAGE)
+  const [continueReading, setContinueReading] = useState(null)
+  const [savedCount, setSavedCount] = useState(0)
 
   useEffect(() => {
     localStorage.setItem(TRANSLATION_KEY, translation)
@@ -32,6 +74,20 @@ export function Bible() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams])
 
+  useEffect(() => {
+    getProfile()
+      .then((p) => {
+        if (p.heroImageUrl) setHeroImageUrl(`${p.heroImageUrl}?t=${p.heroImageUpdatedAt || 0}`)
+      })
+      .catch(() => {})
+    recentPassages(1)
+      .then((rows) => setContinueReading(rows[0] || null))
+      .catch(() => {})
+    listHighlights()
+      .then((rows) => setSavedCount(rows.length))
+      .catch(() => {})
+  }, [])
+
   async function load(reference, version = translation) {
     setStatus('loading')
     setError('')
@@ -40,6 +96,7 @@ export function Bible() {
       setPassage(data)
       setFromCache(fromCache)
       setStatus('idle')
+      recentPassages(1).then((rows) => setContinueReading(rows[0] || null))
     } catch (err) {
       setStatus('error')
       setError(err.message || 'Could not load that passage.')
@@ -51,9 +108,9 @@ export function Bible() {
     if (query.trim()) load(query)
   }
 
-  function handleTranslationChange(e) {
-    const next = e.target.value
+  function handleTranslationChange(next) {
     setTranslation(next)
+    setVersionOpen(false)
     if (query.trim()) load(query, next)
   }
 
@@ -67,155 +124,194 @@ export function Bible() {
   const books = testament === 'OT' ? OLD_TESTAMENT : NEW_TESTAMENT
 
   return (
-    <div className="relative min-h-screen overflow-hidden px-6 pt-10">
-      <p className="font-label text-xs uppercase tracking-label text-black/40">Scripture</p>
-      <h1 className="mt-1 font-display text-2xl font-semibold text-ink-black">Bible</h1>
+    <div className="min-h-screen pb-6">
+      <div className="relative h-56 w-full overflow-hidden bg-deep-indigo">
+        <img src={heroImageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/0 to-black/10" />
+        <BotanicalSprig className="absolute bottom-2 right-8 h-20 w-20 opacity-25" color="var(--color-pure-white)" />
 
-      <form onSubmit={handleSubmit} className="relative z-10 mt-5 flex gap-2">
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="e.g. John 3:16"
-          className="flex-1 rounded-card border border-black/10 bg-pure-white px-4 py-3 font-body text-sm focus:outline-none"
-        />
-        <FilledButton type="submit" className="px-6 py-3 text-[11px]">
-          Go
-        </FilledButton>
-      </form>
+        <header className="relative z-10 flex items-center justify-between px-6 pt-8">
+          <Link to="/" className="text-pure-white">
+            <Logo size={20} />
+          </Link>
+          <HamburgerMenu light />
+        </header>
 
-      <div className="relative z-10 mt-3 flex items-center gap-2">
-        <label htmlFor="translation" className="font-label text-[11px] uppercase tracking-label text-black/40">
-          Version
-        </label>
-        <select
-          id="translation"
-          value={translation}
-          onChange={handleTranslationChange}
-          className="rounded-tag border border-black/10 bg-pure-white px-3 py-1.5 font-label text-[11px] uppercase tracking-label text-deep-indigo focus:outline-none"
-        >
-          {TRANSLATIONS.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.name} — {t.label}
-            </option>
-          ))}
-        </select>
+        <div className="relative z-10 px-6 pt-6">
+          <h1 className="font-display text-2xl font-semibold text-ink-black">Bible</h1>
+          <p className="mt-1 font-body text-xs text-black/70">Read, explore, and grow in God's Word.</p>
+        </div>
       </div>
 
-      <div className="relative z-10 mt-4 flex flex-wrap gap-2">
-        {QUICK_PICKS.map((ref) => (
-          <button
-            key={ref}
-            type="button"
-            onClick={() => {
-              setQuery(ref)
-              load(ref)
-            }}
-            className="rounded-tag border border-black/10 bg-pure-white px-3 py-1.5 font-label text-[11px] uppercase tracking-label text-deep-indigo"
-          >
-            {ref}
-          </button>
-        ))}
-      </div>
+      <div className="px-6">
+        <form onSubmit={handleSubmit} className="relative z-10 mt-5 flex gap-2">
+          <div className="relative flex-1">
+            <SearchIcon className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-black/30" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search by book, chapter or keyword…"
+              className="w-full rounded-card border border-black/10 bg-pure-white py-3 pl-10 pr-4 font-body text-sm focus:outline-none"
+            />
+          </div>
 
-      <section className="relative z-10 mt-6">
-        <h2 className="font-display text-xl font-semibold text-ink-black">Browse</h2>
-
-        <div className="mt-3 flex rounded-pill border border-black/10 bg-pure-white p-1">
-          {[
-            ['OT', 'Old Testament'],
-            ['NT', 'New Testament'],
-          ].map(([id, label]) => (
+          <div className="relative shrink-0">
             <button
-              key={id}
               type="button"
-              onClick={() => {
-                setTestament(id)
-                setActiveBook(null)
-              }}
-              className={`flex-1 rounded-pill py-2 font-label text-[11px] uppercase tracking-label transition-colors ${
-                testament === id ? 'bg-deep-indigo text-pure-white' : 'text-deep-indigo'
-              }`}
+              onClick={() => setVersionOpen((o) => !o)}
+              className="flex h-full items-center gap-1 rounded-card border border-black/10 bg-pure-white px-3 font-label text-[11px] uppercase tracking-label text-deep-indigo"
             >
-              {label}
+              {activeTranslation?.name}
+              <ChevronDown />
             </button>
-          ))}
+
+            {versionOpen && (
+              <>
+                <div className="fixed inset-0 z-30" onClick={() => setVersionOpen(false)} />
+                <div className="absolute right-0 top-full z-40 mt-2 w-40 overflow-hidden rounded-card border border-black/8 bg-pure-white shadow-xl-2">
+                  {TRANSLATIONS.map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => handleTranslationChange(t.id)}
+                      className={`block w-full px-3 py-2.5 text-left font-label text-[10px] uppercase tracking-label ${
+                        translation === t.id ? 'text-deep-indigo' : 'text-black/50'
+                      }`}
+                    >
+                      {t.name} — {t.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </form>
+
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <Link
+            to={continueReading ? `/bible?ref=${encodeURIComponent(continueReading.data.reference)}` : '#'}
+            className="rounded-card border border-black/10 bg-pure-white px-4 py-3"
+          >
+            <BookOpenIcon />
+            <p className="mt-2 font-label text-[10px] uppercase tracking-label text-black/40">Continue Reading</p>
+            <p className="mt-0.5 truncate font-display text-sm font-medium text-ink-black">
+              {continueReading ? continueReading.data.reference : 'Start reading'}
+            </p>
+          </Link>
+          <Link to="/bible/saved" className="rounded-card border border-black/10 bg-pure-white px-4 py-3">
+            <BookmarkIcon />
+            <p className="mt-2 font-label text-[10px] uppercase tracking-label text-black/40">Saved Verses</p>
+            <p className="mt-0.5 font-display text-sm font-medium text-ink-black">
+              {savedCount} verse{savedCount === 1 ? '' : 's'}
+            </p>
+          </Link>
         </div>
 
-        {!activeBook && (
-          <div className="mt-4 grid grid-cols-2 gap-2">
-            {books.map((book) => (
+        <section className="mt-8">
+          <h2 className="font-display text-xl font-semibold text-ink-black">Browse</h2>
+
+          <div className="mt-3 flex rounded-pill border border-black/10 bg-pure-white p-1">
+            {[
+              ['OT', 'Old Testament'],
+              ['NT', 'New Testament'],
+            ].map(([id, label]) => (
               <button
-                key={book.name}
+                key={id}
                 type="button"
-                onClick={() => setActiveBook(book)}
-                className="rounded-card border border-black/10 bg-pure-white px-3 py-2.5 text-left font-label text-xs uppercase tracking-label text-deep-indigo"
+                onClick={() => {
+                  setTestament(id)
+                  setExpandedBook(null)
+                }}
+                className={`flex-1 rounded-pill py-2 font-label text-[11px] uppercase tracking-label transition-colors ${
+                  testament === id ? 'bg-deep-indigo text-pure-white' : 'text-deep-indigo'
+                }`}
               >
-                {book.name}
+                {label}
               </button>
             ))}
           </div>
-        )}
 
-        {activeBook && (
-          <div className="mt-4">
-            <button
-              type="button"
-              onClick={() => setActiveBook(null)}
-              className="font-label text-[11px] uppercase tracking-label text-deep-indigo"
-            >
-              ← Back to books
-            </button>
+          <div className="mt-4 flex flex-col gap-3">
+            {books.map((book) => {
+              const expanded = expandedBook === book.name
+              return (
+                <div key={book.name} className="contents">
+                  <div className="overflow-hidden rounded-card border border-black/10 bg-pure-white">
+                    <button
+                      type="button"
+                      onClick={() => setExpandedBook(expanded ? null : book.name)}
+                      className="flex w-full items-center justify-between gap-3 px-4 py-3"
+                    >
+                      <div className="min-w-0 text-left">
+                        <p className="font-display text-base font-medium text-ink-black">{book.name}</p>
+                        <p className="font-label text-[10px] uppercase tracking-label text-black/40">
+                          {book.chapters} chapter{book.chapters === 1 ? '' : 's'}
+                        </p>
+                      </div>
+                      <span
+                        className={`shrink-0 font-label text-base text-deep-indigo transition-transform ${
+                          expanded ? 'rotate-90' : ''
+                        }`}
+                      >
+                        ›
+                      </span>
+                    </button>
+                  </div>
 
-            <p className="mt-3 font-display text-lg font-semibold text-ink-black">{activeBook.name}</p>
-            <div className="mt-3 grid grid-cols-6 gap-2">
-              {Array.from({ length: activeBook.chapters }, (_, i) => i + 1).map((chapter) => (
-                <button
-                  key={chapter}
-                  type="button"
-                  onClick={() => openChapter(activeBook.name, chapter)}
-                  className="rounded-card border border-black/10 bg-pure-white py-2 text-center font-label text-xs text-deep-indigo"
-                >
-                  {chapter}
-                </button>
-              ))}
-            </div>
+                  {expanded && (
+                    <div className="grid grid-cols-9 gap-1.5 rounded-card border border-black/10 bg-pure-white p-3">
+                      {Array.from({ length: book.chapters }, (_, i) => i + 1).map((chapter) => (
+                        <button
+                          key={chapter}
+                          type="button"
+                          onClick={() => openChapter(book.name, chapter)}
+                          className="aspect-square rounded-[10px] border border-black/10 bg-mist font-label text-[10px] text-deep-indigo"
+                        >
+                          {chapter}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </div>
-        )}
-      </section>
+        </section>
 
-      <div className="relative z-10 mt-8 pb-6">
-        {status === 'loading' && <p className="font-body text-sm text-black/50">Loading…</p>}
-        {status === 'error' && <p className="font-body text-sm text-burnt-orange">{error}</p>}
+        <div className="mt-8">
+          {status === 'loading' && <p className="font-body text-sm text-black/50">Loading…</p>}
+          {status === 'error' && <p className="font-body text-sm text-burnt-orange">{error}</p>}
 
-        {passage && status !== 'loading' && (
-          <Card>
-            <div className="flex items-baseline justify-between gap-3">
-              <p className="font-display text-lg font-semibold text-ink-black">{passage.reference}</p>
-              <p className="font-label text-[10px] uppercase tracking-label text-black/40 whitespace-nowrap">
-                {activeTranslation?.name}
-              </p>
+          {passage && status !== 'loading' && (
+            <div className="rounded-card border border-black/8 bg-pure-white px-5 py-5 shadow-xl-2">
+              <div className="flex items-baseline justify-between gap-3">
+                <p className="font-display text-lg font-semibold text-ink-black">{passage.reference}</p>
+                <p className="font-label text-[10px] uppercase tracking-label text-black/40 whitespace-nowrap">
+                  {activeTranslation?.name}
+                </p>
+              </div>
+              {fromCache && (
+                <p className="mt-1 font-label text-[10px] uppercase tracking-label text-black/40">
+                  Shown from offline cache
+                </p>
+              )}
+              <VerseList
+                verses={passage.verses}
+                fallbackText={passage.text}
+                className="no-scrollbar mt-3 flex max-h-[50vh] flex-col gap-1 overflow-y-auto"
+              />
+
+              <div className="mt-4 border-t border-black/8 pt-4">
+                <Link
+                  to={`/journal/new?ref=${encodeURIComponent(`${passage.reference} (${activeTranslation?.name})`)}`}
+                  className="inline-flex items-center gap-1 font-label text-[11px] uppercase tracking-label text-deep-indigo"
+                >
+                  Reflect in journal <span aria-hidden="true">→</span>
+                </Link>
+              </div>
             </div>
-            {fromCache && (
-              <p className="mt-1 font-label text-[10px] uppercase tracking-label text-black/40">
-                Shown from offline cache
-              </p>
-            )}
-            <VerseList
-              verses={passage.verses}
-              fallbackText={passage.text}
-              className="mt-3 flex max-h-[50vh] flex-col gap-1 overflow-y-auto"
-            />
-
-            <div className="mt-4">
-              <OutlinedButton
-                to={`/journal/new?ref=${encodeURIComponent(`${passage.reference} (${activeTranslation?.name})`)}`}
-                className="w-full text-xs"
-              >
-                Reflect in journal
-              </OutlinedButton>
-            </div>
-          </Card>
-        )}
+          )}
+        </div>
       </div>
     </div>
   )
