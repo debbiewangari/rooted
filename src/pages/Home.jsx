@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { BotanicalSprig } from '../components/BotanicalLine'
 import { HamburgerMenu } from '../components/HamburgerMenu'
 import { Logo } from '../components/Logo'
 import { UpcomingEvents } from '../components/UpcomingEvents'
@@ -71,6 +72,7 @@ export function Home() {
       <div className="relative h-64 w-full overflow-hidden bg-deep-indigo">
         <img src="/hero-sunset.jpg" alt="" className="absolute inset-0 h-full w-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/5 to-black/10" />
+        <BotanicalSprig className="absolute bottom-2 right-8 h-24 w-24 opacity-30" color="var(--color-pure-white)" />
 
         <header className="relative z-10 flex items-center justify-between px-6 pt-8">
           <Link to="/" className="text-pure-white">
