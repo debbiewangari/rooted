@@ -17,9 +17,7 @@ export function EventCard({ event, status }) {
           </p>
           {event.notes && <p className="mt-1 line-clamp-2 font-body text-xs text-black/60">{event.notes}</p>}
         </div>
-        <span className="mt-1.5 shrink-0 font-label text-[10px] uppercase tracking-label text-deep-indigo">
-          View →
-        </span>
+        <span className="mt-1.5 shrink-0 font-label text-[10px] uppercase tracking-label text-deep-indigo">→</span>
       </div>
     </Link>
   )

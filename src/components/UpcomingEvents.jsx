@@ -23,13 +23,13 @@ export function UpcomingEvents({ limit = 5 }) {
       <div className="flex items-baseline justify-between">
         <h2 className="font-display text-xl font-semibold text-ink-black">Upcoming</h2>
         <Link to="/events" className="font-label text-xs uppercase tracking-label text-deep-indigo">
-          View
+          View all
         </Link>
       </div>
 
       <div className="mt-4 flex flex-col gap-2">
         {events?.length === 0 && (
-          <p className="font-body text-sm text-black/50">Nothing planned yet — tap View to add dates.</p>
+          <p className="font-body text-sm text-black/50">Nothing planned yet — tap View all to add dates.</p>
         )}
         {events?.map((e) => (
           <EventCard key={e.id} event={e} status={getEventProgress(e).status} />

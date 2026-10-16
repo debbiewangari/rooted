@@ -42,7 +42,23 @@ function SortableSection({ section, typeDef, onUpdateData, onRemove }) {
     <div ref={setNodeRef} style={style}>
       <Card>
         <div className="flex items-start justify-between gap-2">
-          <p className="font-label text-[11px] uppercase tracking-label text-black/40">{typeDef.name}</p>
+          {typeDef.kind === 'scripture' ? (
+            <p className="font-label text-[11px] uppercase tracking-label text-black/40">{typeDef.name}</p>
+          ) : (
+            <button
+              type="button"
+              // Without this, clicking the label while the field below is
+              // focused blurs it first (closing edit mode), then this
+              // button's own click re-opens it — net effect, tapping to
+              // close does nothing. Blocking the mousedown's default stops
+              // the blur so only one toggle happens.
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => setEditing((e) => !e)}
+              className="font-label text-[11px] uppercase tracking-label text-black/40"
+            >
+              {typeDef.name}
+            </button>
+          )}
           {/* Remove/reorder are editing actions, not something to see while
               just reading this card — scripture has no single read/edit
               moment (browsing a list, tapping a verse, is itself "reading"),

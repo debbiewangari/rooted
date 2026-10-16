@@ -125,19 +125,29 @@ export function PrayerCards({ eventId }) {
           const expanded = expandedId === card.id
           return (
             <Card key={card.id}>
-              <button
-                type="button"
-                onClick={() => toggleCard(card.id)}
-                className="flex w-full items-center justify-between"
-              >
-                <p className="font-display text-base font-medium text-ink-black">{card.title}</p>
-                <span className="font-label text-[10px] uppercase tracking-label text-black/40">
-                  {expanded ? '▲' : '▼'}
-                </span>
-              </button>
+              <div className="flex items-start justify-between gap-2">
+                <button
+                  type="button"
+                  onClick={() => toggleCard(card.id)}
+                  className="font-label text-[11px] uppercase tracking-label text-black/40"
+                >
+                  {card.title}
+                </button>
+                {expanded && editingNotes && (
+                  <div className="flex shrink-0 items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteCard(card.id)}
+                      className="font-label text-[10px] uppercase tracking-label text-black/30"
+                    >
+                      Delete list
+                    </button>
+                  </div>
+                )}
+              </div>
 
               {expanded && (
-                <div className="mt-3">
+                <div className="mt-2">
                   {editingNotes ? (
                     <RichTextEditor
                       value={draftNotes}
@@ -158,22 +168,9 @@ export function PrayerCards({ eventId }) {
                     </button>
                   )}
 
-                  <div className="mt-2 flex items-center justify-between">
-                    {saving ? (
-                      <p className="font-label text-[10px] uppercase tracking-label text-black/30">Saving…</p>
-                    ) : (
-                      <span />
-                    )}
-                    {editingNotes && (
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteCard(card.id)}
-                        className="font-label text-[10px] uppercase tracking-label text-black/40"
-                      >
-                        Delete list
-                      </button>
-                    )}
-                  </div>
+                  {saving && (
+                    <p className="mt-2 font-label text-[10px] uppercase tracking-label text-black/30">Saving…</p>
+                  )}
                 </div>
               )}
             </Card>

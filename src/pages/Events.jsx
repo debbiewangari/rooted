@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { BotanicalSprig } from '../components/BotanicalLine'
-import { FilledButton, OutlinedButton } from '../components/Button'
 import { formatShortRange, getEventProgress, todayKey } from '../lib/calendarUtils'
 import { listCalendarEvents } from '../lib/db'
 
@@ -13,6 +12,15 @@ const TABS = [
 ]
 
 const STATUS_LABEL = { upcoming: 'Upcoming', ongoing: 'Ongoing', completed: 'Completed' }
+
+function CalendarGlyph() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#234386" strokeWidth="1.8">
+      <rect x="4" y="5" width="16" height="15" rx="2" />
+      <path d="M4 9h16M8 3v4M16 3v4" strokeLinecap="round" />
+    </svg>
+  )
+}
 
 export function Events() {
   const [events, setEvents] = useState(null)
@@ -28,19 +36,26 @@ export function Events() {
 
   return (
     <div className="min-h-screen px-6 pt-10 pb-6">
-      <div>
-        <p className="font-label text-xs uppercase tracking-label text-black/40">Challenges</p>
-        <h1 className="mt-1 font-display text-2xl font-semibold text-ink-black">Events</h1>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="font-label text-xs uppercase tracking-label text-black/40">Challenges</p>
+          <h1 className="mt-1 font-display text-2xl font-semibold text-ink-black">Events</h1>
+        </div>
+        <Link
+          to="/calendar"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-pill border border-black/10 bg-pure-white"
+          aria-label="View in calendar"
+        >
+          <CalendarGlyph />
+        </Link>
       </div>
 
-      <div className="mt-4 flex gap-2">
-        <FilledButton to={`/calendar/${todayKey()}`} className="px-4 py-2 text-xs">
-          Add new
-        </FilledButton>
-        <OutlinedButton to="/calendar" className="px-4 py-2 text-xs">
-          View in Calendar
-        </OutlinedButton>
-      </div>
+      <Link
+        to={`/calendar/${todayKey()}`}
+        className="mt-3 inline-block font-label text-[11px] uppercase tracking-label text-deep-indigo"
+      >
+        + Add new
+      </Link>
 
       <div className="mt-5 flex rounded-pill border border-black/10 bg-pure-white p-1">
         {TABS.map((t) => (
