@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { BotanicalSprig } from '../components/BotanicalLine'
 import { Card } from '../components/Card'
 import { EventVerseList } from '../components/EventVerseList'
 import { RichTextEditor } from '../components/RichTextEditor'
@@ -141,74 +142,82 @@ export function EventDay() {
   const nextDate = dayIndex < dates.length - 1 ? dates[dayIndex + 1] : null
 
   return (
-    <div className="min-h-screen px-6 pt-10 pb-6">
-      <div className="flex items-center justify-between">
+    <div className="min-h-screen pb-6">
+      <div className="relative h-40 w-full overflow-hidden bg-warm-sand">
+        {event.coverImageUrl ? (
+          <img src={event.coverImageUrl} alt="" className="h-full w-full object-cover" />
+        ) : (
+          <div className="flex h-full items-center justify-center">
+            <BotanicalSprig className="h-14 w-14 opacity-50" color="var(--color-deep-indigo)" />
+          </div>
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-cream-paper via-transparent to-black/10" />
         <Link
           to={`/events/${id}`}
-          className="flex h-9 w-9 items-center justify-center rounded-pill border border-black/10 bg-pure-white font-display text-lg text-deep-indigo"
+          className="absolute left-4 top-4 flex h-9 w-9 items-center justify-center rounded-pill bg-pure-white/90 font-display text-lg text-deep-indigo"
           aria-label="Back to challenge"
         >
           ←
         </Link>
-        <div className="text-center">
-          <p className="font-display text-base font-semibold text-ink-black">{event.title}</p>
-          <p className="font-label text-[10px] uppercase tracking-label text-black/40">
-            Day {dayIndex + 1} of {dates.length}
-          </p>
-        </div>
         <Link
           to={`/calendar/${date}`}
-          className="flex h-9 w-9 items-center justify-center rounded-pill border border-black/10 bg-pure-white"
+          className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-pill bg-pure-white/90"
           aria-label="Open in calendar"
         >
           <CalendarGlyph />
         </Link>
       </div>
 
-      <div className="no-scrollbar mt-4 flex gap-2 overflow-x-auto">
-        {dates.map((d, i) => {
-          const hasNote = notedDates.has(d)
-          const selected = d === date
-          return (
-            <button
-              key={d}
-              type="button"
-              onClick={() => goToDate(d)}
-              className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-pill font-display text-sm ${
-                selected ? 'bg-deep-indigo text-pure-white' : 'border border-black/10 bg-pure-white text-deep-indigo'
-              }`}
-            >
-              {i + 1}
-              {hasNote && <span className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-burnt-orange" />}
-            </button>
-          )
-        })}
-      </div>
-
-      <div className="mt-5 flex items-center justify-between">
-        <button
-          type="button"
-          disabled={!prevDate}
-          onClick={() => prevDate && goToDate(prevDate)}
-          className="font-display text-xl text-deep-indigo disabled:opacity-20"
-          aria-label="Previous day"
-        >
-          ‹
-        </button>
+      <div className="px-6 pt-4">
         <div className="text-center">
-          <p className="font-display text-xl font-semibold text-ink-black">Day {dayIndex + 1}</p>
-          <p className="font-label text-[11px] uppercase tracking-label text-black/40">{formatLongDate(date)}</p>
+          <p className="font-display text-base font-semibold text-ink-black">{event.title}</p>
+          <p className="font-label text-[10px] uppercase tracking-label text-black/40">
+            Day {dayIndex + 1} of {dates.length}
+          </p>
         </div>
-        <button
-          type="button"
-          disabled={!nextDate}
-          onClick={() => nextDate && goToDate(nextDate)}
-          className="font-display text-xl text-deep-indigo disabled:opacity-20"
-          aria-label="Next day"
-        >
-          ›
-        </button>
-      </div>
+
+        <div className="no-scrollbar mt-4 flex items-center justify-center gap-1.5 overflow-x-auto py-1">
+          {dates.map((d) => {
+            const hasNote = notedDates.has(d)
+            const selected = d === date
+            return (
+              <button
+                key={d}
+                type="button"
+                onClick={() => goToDate(d)}
+                aria-label={`Day ${dates.indexOf(d) + 1}`}
+                className={`shrink-0 rounded-pill transition-all ${
+                  selected ? 'h-2.5 w-6 bg-deep-indigo' : hasNote ? 'h-2.5 w-2.5 bg-burnt-orange/70' : 'h-2.5 w-2.5 bg-black/15'
+                }`}
+              />
+            )
+          })}
+        </div>
+
+        <div className="mt-5 flex items-center justify-between">
+          <button
+            type="button"
+            disabled={!prevDate}
+            onClick={() => prevDate && goToDate(prevDate)}
+            className="font-display text-xl text-deep-indigo disabled:opacity-20"
+            aria-label="Previous day"
+          >
+            ‹
+          </button>
+          <div className="text-center">
+            <p className="font-display text-xl font-semibold text-ink-black">Day {dayIndex + 1}</p>
+            <p className="font-label text-[11px] uppercase tracking-label text-black/40">{formatLongDate(date)}</p>
+          </div>
+          <button
+            type="button"
+            disabled={!nextDate}
+            onClick={() => nextDate && goToDate(nextDate)}
+            className="font-display text-xl text-deep-indigo disabled:opacity-20"
+            aria-label="Next day"
+          >
+            ›
+          </button>
+        </div>
 
       <div className="mt-6 flex flex-col gap-4">
         <Card>
@@ -321,6 +330,7 @@ export function EventDay() {
             Saved {new Date(savedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </p>
         )}
+        </div>
       </div>
     </div>
   )

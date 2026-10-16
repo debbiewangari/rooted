@@ -82,7 +82,7 @@ export function PrayerCards({ eventId }) {
           onClick={() => setAddingCard((v) => !v)}
           className="font-label text-[11px] uppercase tracking-label text-deep-indigo"
         >
-          + New list
+          + Add new
         </button>
       </div>
 

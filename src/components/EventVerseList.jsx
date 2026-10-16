@@ -10,6 +10,7 @@ export function EventVerseList({ verses, onAdd, onRemove, readOnly = false }) {
   const [newRef, setNewRef] = useState('')
   const [expandedId, setExpandedId] = useState(null)
   const [cache, setCache] = useState({})
+  const [adding, setAdding] = useState(false)
 
   async function toggle(entry) {
     if (expandedId === entry.id) {
@@ -80,25 +81,35 @@ export function EventVerseList({ verses, onAdd, onRemove, readOnly = false }) {
         })}
       </div>
 
-      {!readOnly && (
-        <div className="mt-3 flex gap-2">
-          <input
-            value={newRef}
-            onChange={(e) => setNewRef(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault()
-                handleAdd()
-              }
-            }}
-            placeholder="e.g. Daniel 4:34-35"
-            className="flex-1 rounded-card border border-black/10 bg-pure-white px-3 py-2 font-body text-sm focus:outline-none"
-          />
-          <FilledButton type="button" onClick={handleAdd} className="px-5 py-2 text-[11px]">
-            Add
-          </FilledButton>
-        </div>
-      )}
+      {!readOnly &&
+        (adding ? (
+          <div className="mt-3 flex gap-2">
+            <input
+              autoFocus
+              value={newRef}
+              onChange={(e) => setNewRef(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  handleAdd()
+                }
+              }}
+              placeholder="e.g. Daniel 4:34-35"
+              className="flex-1 rounded-card border border-black/10 bg-pure-white px-3 py-2 font-body text-sm focus:outline-none"
+            />
+            <FilledButton type="button" onClick={handleAdd} className="px-5 py-2 text-[11px]">
+              Add
+            </FilledButton>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setAdding(true)}
+            className="mt-3 font-label text-[11px] uppercase tracking-label text-deep-indigo"
+          >
+            + Add new section
+          </button>
+        ))}
     </div>
   )
 }
