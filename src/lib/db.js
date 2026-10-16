@@ -385,11 +385,7 @@ function fromEventNoteRow(row) {
   return {
     eventId: row.event_id,
     date: row.date,
-    focus: row.focus || '',
-    minister: row.minister || '',
-    verses: row.verses || [],
-    notes: row.notes || '',
-    prayerPoints: row.prayer_points || '',
+    sections: row.sections || [],
     updatedAt: toMs(row.updated_at),
   }
 }
@@ -405,18 +401,14 @@ export async function getEventNote(eventId, date) {
   return data ? fromEventNoteRow(data) : null
 }
 
-export async function setEventNote(eventId, date, { focus, minister, verses, notes, prayerPoints }) {
+export async function setEventNote(eventId, date, { sections }) {
   const userId = await getUserId()
   const { error } = await supabase.from('event_notes').upsert(
     {
       user_id: userId,
       event_id: eventId,
       date,
-      focus: focus || '',
-      minister: minister || '',
-      verses: Array.isArray(verses) ? verses : [],
-      notes: notes || '',
-      prayer_points: prayerPoints || '',
+      sections: Array.isArray(sections) ? sections : [],
       updated_at: new Date().toISOString(),
     },
     { onConflict: 'event_id,date' },
@@ -428,6 +420,46 @@ export async function listEventNotes(eventId) {
   const { data, error } = await supabase.from('event_notes').select('*').eq('event_id', eventId)
   if (error) throw error
   return data.map(fromEventNoteRow)
+}
+
+// A day's note is built from sections the same way a Library entry is —
+// built-in types (Today's Focus, Minister, Bible Verses, Notes, Prayer
+// Points) are always offered; custom ones a user names are saved here so
+// they're reusable across every day/event, the same way tags are.
+const BUILT_IN_DAY_SECTION_TYPES = [
+  { id: 'focus', name: "Today's Focus", kind: 'text', builtIn: true },
+  { id: 'minister', name: 'Minister', kind: 'text', builtIn: true },
+  { id: 'verses', name: 'Bible Verses', kind: 'scripture', builtIn: true },
+  { id: 'notes', name: 'Notes', kind: 'richtext', builtIn: true },
+  { id: 'prayer', name: 'Prayer Points', kind: 'richtext', builtIn: true },
+]
+
+export function builtInDaySectionTypes() {
+  return BUILT_IN_DAY_SECTION_TYPES
+}
+
+export async function listDaySectionTypes() {
+  const { data, error } = await supabase.from('day_section_types').select('*').order('name')
+  if (error) throw error
+  return data.map((row) => ({ id: row.id, name: row.name, kind: row.kind, builtIn: false }))
+}
+
+export async function createDaySectionType(name, kind = 'richtext') {
+  const trimmed = name.trim()
+  const existingCustom = await listDaySectionTypes()
+  const match = [...BUILT_IN_DAY_SECTION_TYPES, ...existingCustom].find(
+    (t) => t.name.toLowerCase() === trimmed.toLowerCase(),
+  )
+  if (match) return match
+
+  const userId = await getUserId()
+  const { data, error } = await supabase
+    .from('day_section_types')
+    .insert({ user_id: userId, name: trimmed, kind })
+    .select()
+    .single()
+  if (error) throw error
+  return { id: data.id, name: data.name, kind: data.kind, builtIn: false }
 }
 
 // Standing prayer lists -------------------------------------------------
@@ -626,16 +658,22 @@ export async function importAllData(data) {
   }
 
   for (const note of data.eventNotes || []) {
+    let sections = Array.isArray(note.sections) ? note.sections : []
+    if (sections.length === 0) {
+      if (note.focus) sections.push({ id: makeId(), typeId: 'focus', data: { value: note.focus } })
+      if (note.minister) sections.push({ id: makeId(), typeId: 'minister', data: { value: note.minister } })
+      if (Array.isArray(note.verses) && note.verses.length) {
+        sections.push({ id: makeId(), typeId: 'verses', data: { verses: note.verses } })
+      }
+      if (note.notes) sections.push({ id: makeId(), typeId: 'notes', data: { html: note.notes } })
+      if (note.prayerPoints) sections.push({ id: makeId(), typeId: 'prayer', data: { html: note.prayerPoints } })
+    }
     const { error } = await supabase.from('event_notes').upsert(
       {
         user_id: userId,
         event_id: note.eventId,
         date: note.date,
-        focus: note.focus || '',
-        minister: note.minister || '',
-        verses: Array.isArray(note.verses) ? note.verses : [],
-        notes: note.notes || '',
-        prayer_points: note.prayerPoints || '',
+        sections,
       },
       { onConflict: 'event_id,date' },
     )

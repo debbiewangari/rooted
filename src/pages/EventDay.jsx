@@ -1,21 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { BotanicalSprig } from '../components/BotanicalLine'
-import { Card } from '../components/Card'
-import { EventVerseList } from '../components/EventVerseList'
-import { RichTextEditor } from '../components/RichTextEditor'
+import { DaySections } from '../components/DaySections'
 import { enumerateDates, formatLongDate } from '../lib/calendarUtils'
-import { getCalendarEvent, getEventNote, listEventNotes, setEventNote } from '../lib/db'
-
-const EMPTY_FIELDS = { focus: '', minister: '', verses: [], notes: '', prayerPoints: '' }
-
-function hasText(html) {
-  return Boolean(html && html.replace(/<[^>]*>/g, '').trim())
-}
-
-function hasContent(row) {
-  return Boolean(row.focus || row.minister || row.verses?.length || hasText(row.notes) || hasText(row.prayerPoints))
-}
+import {
+  builtInDaySectionTypes,
+  createDaySectionType,
+  getCalendarEvent,
+  getEventNote,
+  listDaySectionTypes,
+  setEventNote,
+} from '../lib/db'
 
 function CalendarGlyph() {
   return (
@@ -32,14 +27,10 @@ export function EventDay() {
 
   const [event, setEvent] = useState(null)
   const [notFound, setNotFound] = useState(false)
-  const [notedDates, setNotedDates] = useState(new Set())
-  const [fields, setFields] = useState(EMPTY_FIELDS)
+  const [sections, setSections] = useState([])
+  const [typeDefs, setTypeDefs] = useState(builtInDaySectionTypes())
   const [savedAt, setSavedAt] = useState(null)
   const [saving, setSaving] = useState(false)
-  const [editingFocus, setEditingFocus] = useState(false)
-  const [editingMinister, setEditingMinister] = useState(false)
-  const [editingNotes, setEditingNotes] = useState(false)
-  const [editingPrayerPoints, setEditingPrayerPoints] = useState(false)
   // Guards the autosave effect below from firing the instant a day's note
   // loads — only real edits (which flip this false) should trigger a save.
   const skipAutosaveRef = useRef(true)
@@ -58,32 +49,17 @@ export function EventDay() {
     if (notFound) navigate('/calendar', { replace: true })
   }, [notFound, navigate])
 
-  function refreshNoted() {
-    listEventNotes(id).then((rows) => {
-      setNotedDates(new Set(rows.filter(hasContent).map((r) => r.date)))
-    })
-  }
-
+  // Section types are reusable across every day/event for this account, so
+  // they're loaded once rather than per day.
   useEffect(() => {
-    refreshNoted()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id])
+    listDaySectionTypes().then((custom) => setTypeDefs([...builtInDaySectionTypes(), ...custom]))
+  }, [])
 
   useEffect(() => {
     skipAutosaveRef.current = true
     getEventNote(id, date).then((row) => {
-      setFields({
-        focus: row?.focus || '',
-        minister: row?.minister || '',
-        verses: Array.isArray(row?.verses) ? row.verses : [],
-        notes: row?.notes || '',
-        prayerPoints: row?.prayerPoints || '',
-      })
+      setSections(row?.sections || [])
       setSavedAt(row?.updatedAt || null)
-      setEditingFocus(!row?.focus)
-      setEditingMinister(!row?.minister)
-      setEditingNotes(!hasText(row?.notes))
-      setEditingPrayerPoints(!hasText(row?.prayerPoints))
     })
   }, [id, date])
 
@@ -91,10 +67,9 @@ export function EventDay() {
   const dayIndex = dates.indexOf(date)
 
   async function persist(next) {
-    await setEventNote(id, date, next)
+    await setEventNote(id, date, { sections: next })
     setSavedAt(Date.now())
     setSaving(false)
-    refreshNoted()
   }
 
   // Debounced autosave — the single source of truth for persisting this
@@ -108,29 +83,21 @@ export function EventDay() {
     }
     setSaving(true)
     const timeout = setTimeout(() => {
-      persist(fields)
+      persist(sections)
     }, 700)
     return () => clearTimeout(timeout)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fields])
+  }, [sections])
 
   function goToDate(d) {
-    persist(fields)
+    persist(sections)
     navigate(`/events/${id}/day/${d}`)
   }
 
-  async function handleAddVerse(reference) {
-    const next = { ...fields, verses: [...fields.verses, { id: crypto.randomUUID(), reference }] }
-    setFields(next)
-    skipAutosaveRef.current = true
-    await persist(next)
-  }
-
-  async function handleRemoveVerse(verseId) {
-    const next = { ...fields, verses: fields.verses.filter((v) => v.id !== verseId) }
-    setFields(next)
-    skipAutosaveRef.current = true
-    await persist(next)
+  async function handleCreateType(name) {
+    const type = await createDaySectionType(name)
+    setTypeDefs((prev) => (prev.some((t) => t.id === type.id) ? prev : [...prev, type]))
+    return type
   }
 
   if (notFound) return null
@@ -176,24 +143,6 @@ export function EventDay() {
           </p>
         </div>
 
-        <div className="no-scrollbar mt-4 flex items-center justify-center gap-1.5 overflow-x-auto py-1">
-          {dates.map((d) => {
-            const hasNote = notedDates.has(d)
-            const selected = d === date
-            return (
-              <button
-                key={d}
-                type="button"
-                onClick={() => goToDate(d)}
-                aria-label={`Day ${dates.indexOf(d) + 1}`}
-                className={`shrink-0 rounded-pill transition-all ${
-                  selected ? 'h-2.5 w-6 bg-deep-indigo' : hasNote ? 'h-2.5 w-2.5 bg-burnt-orange/70' : 'h-2.5 w-2.5 bg-black/15'
-                }`}
-              />
-            )
-          })}
-        </div>
-
         <div className="mt-5 flex items-center justify-between">
           <button
             type="button"
@@ -219,117 +168,17 @@ export function EventDay() {
           </button>
         </div>
 
-      <div className="mt-6 flex flex-col gap-4">
-        <Card>
-          <p className="font-label text-[11px] uppercase tracking-label text-black/40">Today's Focus</p>
-          {editingFocus ? (
-            <textarea
-              autoFocus
-              value={fields.focus}
-              onChange={(e) => setFields((f) => ({ ...f, focus: e.target.value }))}
-              onBlur={() => setEditingFocus(false)}
-              placeholder="What's the focus for today?"
-              rows={2}
-              className="mt-2 w-full resize-none rounded-card border border-black/10 bg-pure-white px-3 py-2 font-body text-sm text-black/80 placeholder:text-black/30 focus:outline-none"
-            />
-          ) : (
-            <button type="button" onClick={() => setEditingFocus(true)} className="mt-2 block w-full text-left">
-              {fields.focus ? (
-                <span className="font-display text-base font-medium text-ink-black">{fields.focus}</span>
-              ) : (
-                <span className="font-body text-sm text-black/30">What's the focus for today?</span>
-              )}
-            </button>
+        <div className="mt-6">
+          <DaySections sections={sections} typeDefs={typeDefs} onChange={setSections} onCreateType={handleCreateType} />
+        </div>
+
+        <div className="mt-4">
+          {saving && <p className="font-label text-[10px] uppercase tracking-label text-black/30">Saving…</p>}
+          {!saving && savedAt && (
+            <p className="font-label text-[10px] uppercase tracking-label text-black/30">
+              Saved {new Date(savedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </p>
           )}
-        </Card>
-
-        <Card>
-          <p className="font-label text-[11px] uppercase tracking-label text-black/40">Minister</p>
-          {editingMinister ? (
-            <input
-              autoFocus
-              value={fields.minister}
-              onChange={(e) => setFields((f) => ({ ...f, minister: e.target.value }))}
-              onBlur={() => setEditingMinister(false)}
-              placeholder="e.g. Pastor Nathaniel Bassey"
-              className="mt-2 w-full rounded-card border border-black/10 bg-pure-white px-3 py-2 font-body text-sm placeholder:text-black/30 focus:outline-none"
-            />
-          ) : (
-            <button type="button" onClick={() => setEditingMinister(true)} className="mt-2 block w-full text-left">
-              {fields.minister ? (
-                <span className="font-display text-base font-medium text-ink-black">{fields.minister}</span>
-              ) : (
-                <span className="font-body text-sm text-black/30">e.g. Pastor Nathaniel Bassey</span>
-              )}
-            </button>
-          )}
-        </Card>
-
-        <Card>
-          <p className="font-label text-[11px] uppercase tracking-label text-black/40">Bible Verses</p>
-          <div className="mt-2">
-            <EventVerseList verses={fields.verses} onAdd={handleAddVerse} onRemove={handleRemoveVerse} />
-          </div>
-        </Card>
-
-        <Card>
-          <p className="font-label text-[11px] uppercase tracking-label text-black/40">Notes</p>
-          {editingNotes ? (
-            <div className="mt-2">
-              <RichTextEditor
-                value={fields.notes}
-                onChange={(html) => setFields((f) => ({ ...f, notes: html }))}
-                onBlur={() => setEditingNotes(false)}
-                placeholder="Write your notes, reflections or what stood out to you today…"
-              />
-            </div>
-          ) : (
-            <button type="button" onClick={() => setEditingNotes(true)} className="mt-2 block w-full text-left">
-              {hasText(fields.notes) ? (
-                <span
-                  className="rich-text-editor font-body text-sm text-black/80"
-                  dangerouslySetInnerHTML={{ __html: fields.notes }}
-                />
-              ) : (
-                <span className="font-body text-sm text-black/30">
-                  Write your notes, reflections or what stood out to you today…
-                </span>
-              )}
-            </button>
-          )}
-        </Card>
-
-        <Card>
-          <p className="font-label text-[11px] uppercase tracking-label text-black/40">Prayer Points</p>
-          {editingPrayerPoints ? (
-            <div className="mt-2">
-              <RichTextEditor
-                value={fields.prayerPoints}
-                onChange={(html) => setFields((f) => ({ ...f, prayerPoints: html }))}
-                onBlur={() => setEditingPrayerPoints(false)}
-                placeholder="What to pray for…"
-              />
-            </div>
-          ) : (
-            <button type="button" onClick={() => setEditingPrayerPoints(true)} className="mt-2 block w-full text-left">
-              {hasText(fields.prayerPoints) ? (
-                <span
-                  className="rich-text-editor font-body text-sm text-black/80"
-                  dangerouslySetInnerHTML={{ __html: fields.prayerPoints }}
-                />
-              ) : (
-                <span className="font-body text-sm text-black/30">What to pray for…</span>
-              )}
-            </button>
-          )}
-        </Card>
-
-        {saving && <p className="font-label text-[10px] uppercase tracking-label text-black/30">Saving…</p>}
-        {!saving && savedAt && (
-          <p className="font-label text-[10px] uppercase tracking-label text-black/30">
-            Saved {new Date(savedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </p>
-        )}
         </div>
       </div>
     </div>
