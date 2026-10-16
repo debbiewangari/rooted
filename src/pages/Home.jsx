@@ -95,9 +95,9 @@ export function Home() {
         </header>
 
         <div className="relative z-10 px-6 pt-5">
-          <p className="font-label text-[10px] uppercase tracking-label text-pure-white/60">{getGreeting()},</p>
-          <h1 className="mt-0.5 font-display text-xl font-semibold text-pure-white">{getName()}</h1>
-          <p className="mt-1 font-body text-xs text-pure-white/70">Take a moment to be still in His presence.</p>
+          <p className="font-label text-[10px] uppercase tracking-label text-black/60">{getGreeting()},</p>
+          <h1 className="mt-0.5 font-display text-xl font-semibold text-ink-black">{getName()}</h1>
+          <p className="mt-1 font-body text-xs text-black/70">Take a moment to be still in His presence.</p>
         </div>
       </div>
 

@@ -164,74 +164,74 @@ export function ThemeDetail() {
         )}
 
         {entries && entries.length > 0 && (
-          <Card className="mt-4">
-            <div className="relative flex items-center gap-2">
-              <input
-                value={entryQuery}
-                onChange={(e) => setEntryQuery(e.target.value)}
-                placeholder="Search entries…"
-                className="flex-1 rounded-card border border-black/10 bg-pure-white px-3 py-2 font-body text-xs focus:outline-none"
-              />
-              <button
-                type="button"
-                onClick={() => setEntryFilterOpen((o) => !o)}
-                aria-label="Sort entries"
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-pill border border-black/10 bg-pure-white"
-              >
-                <FilterIcon />
-              </button>
+          <div className="mt-4 flex flex-col gap-3">
+            <Card>
+              <div className="relative flex items-center gap-2">
+                <input
+                  value={entryQuery}
+                  onChange={(e) => setEntryQuery(e.target.value)}
+                  placeholder="Search entries…"
+                  className="flex-1 rounded-card border border-black/10 bg-pure-white px-3 py-2 font-body text-xs focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setEntryFilterOpen((o) => !o)}
+                  aria-label="Sort entries"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-pill border border-black/10 bg-pure-white"
+                >
+                  <FilterIcon />
+                </button>
 
-              {entryFilterOpen && (
-                <>
-                  <div className="fixed inset-0 z-30" onClick={() => setEntryFilterOpen(false)} />
-                  <div className="absolute right-0 top-full z-40 mt-2 w-32 overflow-hidden rounded-card border border-black/8 bg-pure-white shadow-xl-2">
-                    {ENTRY_SORTS.map((s) => (
-                      <button
-                        key={s.id}
-                        type="button"
-                        onClick={() => {
-                          setEntrySort(s.id)
-                          setEntryFilterOpen(false)
-                        }}
-                        className={`block w-full px-3 py-2.5 text-left font-label text-[10px] uppercase tracking-label ${
-                          entrySort === s.id ? 'text-deep-indigo' : 'text-black/50'
-                        }`}
-                      >
-                        {s.label}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-
-            {filteredEntries.length === 0 && (
-              <p className="mt-3 font-body text-xs text-black/50">No entries match “{entryQuery}”.</p>
-            )}
-
-            <div className="mt-1 flex flex-col">
-              {filteredEntries.map((entry) => {
-                const cfg = typeConfig(entry.type || 'reflection')
-                const Icon = TYPE_ICONS[entry.type || 'reflection']
-                return (
-                  <Link
-                    key={entry.id}
-                    to={`/journal/${entry.id}`}
-                    className="flex items-center gap-3 border-b border-black/8 py-3 last:border-0 last:pb-0"
-                  >
-                    <Icon color="#234386" size={20} />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-display text-base font-medium text-ink-black">{entry.title}</p>
-                      <p className="mt-0.5 font-body text-xs text-black/50">
-                        {cfg.singular} · {formatShortDate(entry.updatedAt)}
-                      </p>
+                {entryFilterOpen && (
+                  <>
+                    <div className="fixed inset-0 z-30" onClick={() => setEntryFilterOpen(false)} />
+                    <div className="absolute right-0 top-full z-40 mt-2 w-32 overflow-hidden rounded-card border border-black/8 bg-pure-white shadow-xl-2">
+                      {ENTRY_SORTS.map((s) => (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => {
+                            setEntrySort(s.id)
+                            setEntryFilterOpen(false)
+                          }}
+                          className={`block w-full px-3 py-2.5 text-left font-label text-[10px] uppercase tracking-label ${
+                            entrySort === s.id ? 'text-deep-indigo' : 'text-black/50'
+                          }`}
+                        >
+                          {s.label}
+                        </button>
+                      ))}
                     </div>
-                    <span className="shrink-0 text-black/30">›</span>
-                  </Link>
-                )
-              })}
-            </div>
-          </Card>
+                  </>
+                )}
+              </div>
+
+              {filteredEntries.length === 0 && (
+                <p className="mt-3 font-body text-xs text-black/50">No entries match “{entryQuery}”.</p>
+              )}
+            </Card>
+
+            {filteredEntries.map((entry) => {
+              const cfg = typeConfig(entry.type || 'reflection')
+              const Icon = TYPE_ICONS[entry.type || 'reflection']
+              return (
+                <Link
+                  key={entry.id}
+                  to={`/journal/${entry.id}`}
+                  className="flex items-center gap-3 rounded-card border border-black/10 bg-pure-white px-4 py-3"
+                >
+                  <Icon color="#234386" size={20} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-display text-base font-medium text-ink-black">{entry.title}</p>
+                    <p className="mt-0.5 font-body text-xs text-black/50">
+                      {cfg.singular} · {formatShortDate(entry.updatedAt)}
+                    </p>
+                  </div>
+                  <span className="shrink-0 text-black/30">›</span>
+                </Link>
+              )
+            })}
+          </div>
         )}
       </div>
     </div>
