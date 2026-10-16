@@ -1,6 +1,7 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { FilledButton, OutlinedButton } from '../components/Button'
-import { exportAllData, importAllData } from '../lib/db'
+import { exportAllData, getProfile, importAllData, removeHeroImage, setHeroImage } from '../lib/db'
+import { resizeImage } from '../lib/image'
 import * as legacyDb from '../lib/legacyDb'
 import { getName, setName } from '../lib/profile'
 import { supabase } from '../lib/supabase'
@@ -9,10 +10,50 @@ import { useAuth } from '../lib/auth.jsx'
 export function Settings() {
   const { user } = useAuth()
   const fileRef = useRef(null)
+  const heroFileRef = useRef(null)
   const [status, setStatus] = useState('')
   const [migrateStatus, setMigrateStatus] = useState('idle') // idle | loading | done | error
   const [name, setNameInput] = useState(getName())
   const [nameSaved, setNameSaved] = useState(false)
+  const [heroImageUrl, setHeroImageUrl] = useState(null)
+  const [heroBusy, setHeroBusy] = useState(false)
+  const [heroError, setHeroError] = useState('')
+
+  useEffect(() => {
+    getProfile()
+      .then((p) => {
+        setHeroImageUrl(p.heroImageUrl ? `${p.heroImageUrl}?t=${p.heroImageUpdatedAt || 0}` : null)
+      })
+      .catch(() => {})
+  }, [])
+
+  async function handleHeroImageChange(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setHeroError('')
+    setHeroBusy(true)
+    try {
+      const resized = await resizeImage(file, 1600)
+      const profile = await setHeroImage(resized)
+      setHeroImageUrl(`${profile.heroImageUrl}?t=${profile.heroImageUpdatedAt || 0}`)
+    } catch {
+      setHeroError('Could not update the hero image — try a different file.')
+    }
+    setHeroBusy(false)
+    e.target.value = ''
+  }
+
+  async function handleRemoveHeroImage() {
+    setHeroError('')
+    setHeroBusy(true)
+    try {
+      await removeHeroImage()
+      setHeroImageUrl(null)
+    } catch {
+      setHeroError('Could not remove the hero image — try again.')
+    }
+    setHeroBusy(false)
+  }
 
   function handleNameBlur() {
     setName(name)
@@ -94,6 +135,50 @@ export function Settings() {
           placeholder="Debbie"
         />
         {nameSaved && <p className="mt-1 font-body text-xs text-deep-indigo">Saved</p>}
+      </div>
+
+      <div className="mt-8">
+        <h2 className="font-display text-lg font-semibold text-ink-black">Homepage hero image</h2>
+        <p className="mt-1 font-body text-sm text-black/60">Shown behind the greeting at the top of the home page.</p>
+
+        <label className="mt-3 block">
+          <div className="flex h-36 w-full items-center justify-center overflow-hidden rounded-card border border-dashed border-black/20 bg-pure-white">
+            <img
+              src={heroImageUrl || '/hero-sunset.jpg'}
+              alt="Hero preview"
+              className={`h-full w-full object-cover ${heroBusy ? 'opacity-50' : ''}`}
+            />
+          </div>
+          <input
+            ref={heroFileRef}
+            type="file"
+            accept="image/*"
+            onChange={handleHeroImageChange}
+            disabled={heroBusy}
+            className="sr-only"
+          />
+        </label>
+        <div className="mt-2 flex items-center gap-4">
+          <button
+            type="button"
+            onClick={() => heroFileRef.current?.click()}
+            disabled={heroBusy}
+            className="font-label text-[11px] uppercase tracking-label text-deep-indigo disabled:opacity-50"
+          >
+            {heroBusy ? 'Uploading…' : 'Upload image'}
+          </button>
+          {heroImageUrl && (
+            <button
+              type="button"
+              onClick={handleRemoveHeroImage}
+              disabled={heroBusy}
+              className="font-label text-[11px] uppercase tracking-label text-black/40 disabled:opacity-50"
+            >
+              Use default
+            </button>
+          )}
+        </div>
+        {heroError && <p className="mt-2 font-body text-sm text-burnt-orange">{heroError}</p>}
       </div>
 
       <div className="mt-8">

@@ -7,7 +7,9 @@ import { UpcomingEvents } from '../components/UpcomingEvents'
 import { fetchDailyVerse } from '../lib/dailyVerse'
 import { getGreeting, getName } from '../lib/profile'
 import { isVerseSaved, toggleSavedVerse } from '../lib/savedVerses'
-import { backfillThemesFromTags, listThemes } from '../lib/db'
+import { backfillThemesFromTags, getProfile, listThemes } from '../lib/db'
+
+const DEFAULT_HERO_IMAGE = '/hero-sunset.jpg'
 
 const THEME_CARD_WIDTH = 176 + 16 // w-44 + gap-4
 const MAX_HOME_THEMES = 3
@@ -35,6 +37,7 @@ export function Home() {
   const [verse, setVerse] = useState(null)
   const [verseError, setVerseError] = useState(false)
   const [verseSaved, setVerseSaved] = useState(false)
+  const [heroImageUrl, setHeroImageUrl] = useState(DEFAULT_HERO_IMAGE)
   const scrollRef = useRef(null)
 
   useEffect(() => {
@@ -51,6 +54,11 @@ export function Home() {
         setVerseSaved(isVerseSaved(v.reference))
       })
       .catch(() => setVerseError(true))
+    getProfile()
+      .then((p) => {
+        if (p.heroImageUrl) setHeroImageUrl(`${p.heroImageUrl}?t=${p.heroImageUpdatedAt || 0}`)
+      })
+      .catch(() => {})
   }, [])
 
   const homeThemes = themes.slice(0, MAX_HOME_THEMES)
@@ -70,7 +78,7 @@ export function Home() {
   return (
     <div className="min-h-screen bg-white">
       <div className="relative h-64 w-full overflow-hidden bg-deep-indigo">
-        <img src="/hero-sunset.jpg" alt="" className="absolute inset-0 h-full w-full object-cover" />
+        <img src={heroImageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/5 to-black/10" />
         <BotanicalSprig className="absolute bottom-2 right-8 h-24 w-24 opacity-30" color="var(--color-pure-white)" />
 

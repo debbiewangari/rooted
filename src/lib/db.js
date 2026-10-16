@@ -260,6 +260,42 @@ export async function listEntriesByTag(tagName) {
 // otherwise the next backfillThemesFromTags() call (run on every Home load)
 // sees that tag still registered, finds no theme for it, and silently
 // recreates the very card that was just deleted.
+// Profile / app settings --------------------------------------------------
+// A fixed, per-user path means re-uploading just overwrites the same
+// storage object (uploadCover already passes upsert: true) — callers that
+// display the URL should append a cache-busting query param themselves
+// (e.g. updatedAt) since the path alone won't change when the image does.
+export async function getProfile() {
+  const userId = await getUserId()
+  const { data, error } = await supabase.from('profiles').select('*').eq('user_id', userId).maybeSingle()
+  if (error) throw error
+  return {
+    heroImageUrl: publicCoverUrl(data?.hero_image_path),
+    heroImageUpdatedAt: toMs(data?.updated_at),
+  }
+}
+
+export async function setHeroImage(blob) {
+  const userId = await getUserId()
+  const path = `${userId}/hero.jpg`
+  await uploadCover(path, blob)
+  const { error } = await supabase
+    .from('profiles')
+    .upsert({ user_id: userId, hero_image_path: path, updated_at: new Date().toISOString() })
+  if (error) throw error
+  return getProfile()
+}
+
+export async function removeHeroImage() {
+  const userId = await getUserId()
+  const { data: row } = await supabase.from('profiles').select('hero_image_path').eq('user_id', userId).maybeSingle()
+  if (row?.hero_image_path) await removeCover(row.hero_image_path)
+  const { error } = await supabase
+    .from('profiles')
+    .upsert({ user_id: userId, hero_image_path: null, updated_at: new Date().toISOString() })
+  if (error) throw error
+}
+
 export async function deleteTheme(id) {
   const { data: row } = await supabase.from('themes').select('image_path, title').eq('id', id).maybeSingle()
   if (row?.image_path) await removeCover(row.image_path)
