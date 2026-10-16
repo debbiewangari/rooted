@@ -16,7 +16,8 @@ export function CalendarDay() {
   const [customCategory, setCustomCategory] = useState('')
   const [endDate, setEndDate] = useState(date)
   const [anchorVerse, setAnchorVerse] = useState('')
-  const [time, setTime] = useState('')
+  const [startTime, setStartTime] = useState('')
+  const [endTime, setEndTime] = useState('')
   const [theme, setTheme] = useState('')
 
   async function refresh() {
@@ -40,7 +41,8 @@ export function CalendarDay() {
       startDate: date,
       endDate,
       anchorVerse,
-      time,
+      startTime,
+      endTime,
       customCategory,
       theme,
     })
@@ -50,7 +52,8 @@ export function CalendarDay() {
     setCustomCategory('')
     setEndDate(date)
     setAnchorVerse('')
-    setTime('')
+    setStartTime('')
+    setEndTime('')
     setTheme('')
     refresh()
   }
@@ -75,9 +78,12 @@ export function CalendarDay() {
               <Link to={`/events/${e.id}`} className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="font-display text-base font-medium text-ink-black">{e.title}</p>
-                  {e.startDate !== e.endDate && (
+                  {(e.startDate !== e.endDate || e.startTime) && (
                     <p className="font-label text-[10px] uppercase tracking-label text-black/40">
-                      {e.startDate} – {e.endDate}
+                      {e.startDate !== e.endDate ? `${e.startDate} – ${e.endDate}` : null}
+                      {e.startDate !== e.endDate && e.startTime ? ' · ' : null}
+                      {e.startTime}
+                      {e.endTime ? `–${e.endTime}` : ''}
                     </p>
                   )}
                   {e.notes && <p className="mt-1 font-body text-sm text-black/70">{e.notes}</p>}
@@ -126,32 +132,20 @@ export function CalendarDay() {
           className="w-full rounded-card border border-black/10 bg-pure-white px-3 py-2.5 font-body text-sm text-ink-black focus:outline-none"
         />
 
-        <div className="flex gap-3">
-          <label className="flex-1">
-            <span className="font-label text-[11px] uppercase tracking-label text-black/40">Category</span>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="mt-1 w-full rounded-card border border-black/10 bg-pure-white px-3 py-2.5 font-label text-xs uppercase tracking-label text-deep-indigo focus:outline-none"
-            >
-              {EVENT_CATEGORIES.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="flex-1">
-            <span className="font-label text-[11px] uppercase tracking-label text-black/40">Time</span>
-            <input
-              type="time"
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
-              className="mt-1 w-full rounded-card border border-black/10 bg-pure-white px-3 py-2.5 font-body text-sm focus:outline-none"
-            />
-          </label>
-        </div>
+        <label className="block">
+          <span className="font-label text-[11px] uppercase tracking-label text-black/40">Category</span>
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className="mt-1 w-full rounded-card border border-black/10 bg-pure-white px-3 py-2.5 font-label text-xs uppercase tracking-label text-deep-indigo focus:outline-none"
+          >
+            {EVENT_CATEGORIES.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+        </label>
 
         {category === 'other' && (
           <input
@@ -169,13 +163,34 @@ export function CalendarDay() {
           className="w-full rounded-card border border-black/10 bg-pure-white px-3 py-2.5 font-body text-sm focus:outline-none"
         />
 
+        <div className="flex gap-3">
+          <label className="flex-1">
+            <span className="font-label text-[11px] uppercase tracking-label text-black/40">Starts</span>
+            <input
+              type="time"
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
+              className="mt-1 w-full rounded-card border border-black/10 bg-pure-white px-3 py-2.5 font-body text-sm focus:outline-none"
+            />
+          </label>
+          <label className="flex-1">
+            <span className="font-label text-[11px] uppercase tracking-label text-black/40">Ends</span>
+            <input
+              type="date"
+              value={endDate}
+              min={date}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="mt-1 w-full rounded-card border border-black/10 bg-pure-white px-3 py-2.5 font-body text-sm focus:outline-none"
+            />
+          </label>
+        </div>
+
         <label className="block">
-          <span className="font-label text-[11px] uppercase tracking-label text-black/40">Ends</span>
+          <span className="font-label text-[11px] uppercase tracking-label text-black/40">End time (optional)</span>
           <input
-            type="date"
-            value={endDate}
-            min={date}
-            onChange={(e) => setEndDate(e.target.value)}
+            type="time"
+            value={endTime}
+            onChange={(e) => setEndTime(e.target.value)}
             className="mt-1 w-full rounded-card border border-black/10 bg-pure-white px-3 py-2.5 font-body text-sm focus:outline-none"
           />
         </label>

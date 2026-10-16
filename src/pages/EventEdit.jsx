@@ -18,7 +18,8 @@ export function EventEdit() {
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [anchorVerse, setAnchorVerse] = useState('')
-  const [time, setTime] = useState('')
+  const [startTime, setStartTime] = useState('')
+  const [endTime, setEndTime] = useState('')
   const [theme, setTheme] = useState('')
   const [existingImageUrl, setExistingImageUrl] = useState(null)
   const [newCoverImage, setNewCoverImage] = useState(null)
@@ -39,7 +40,8 @@ export function EventEdit() {
       setStartDate(row.startDate)
       setEndDate(row.endDate)
       setAnchorVerse(row.anchorVerse || '')
-      setTime(row.time || '')
+      setStartTime(row.startTime || '')
+      setEndTime(row.endTime || '')
       setTheme(row.theme || '')
       setExistingImageUrl(row.coverImageUrl || null)
       setLoading(false)
@@ -87,7 +89,8 @@ export function EventEdit() {
       startDate,
       endDate: endDate < startDate ? startDate : endDate,
       anchorVerse: anchorVerse.trim(),
-      time,
+      startTime,
+      endTime,
       theme: theme.trim(),
       coverImage: newCoverImage,
       removeImage: imageRemoved,
@@ -172,32 +175,20 @@ export function EventEdit() {
           />
         </label>
 
-        <div className="flex gap-3">
-          <label className="flex-1">
-            <span className="font-label text-[11px] uppercase tracking-label text-black/40">Category</span>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="mt-1 w-full rounded-card border border-black/10 bg-pure-white px-3 py-2.5 font-label text-xs uppercase tracking-label text-deep-indigo focus:outline-none"
-            >
-              {EVENT_CATEGORIES.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="flex-1">
-            <span className="font-label text-[11px] uppercase tracking-label text-black/40">Time</span>
-            <input
-              type="time"
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
-              className="mt-1 w-full rounded-card border border-black/10 bg-pure-white px-3 py-2.5 font-body text-sm focus:outline-none"
-            />
-          </label>
-        </div>
+        <label className="block">
+          <span className="font-label text-[11px] uppercase tracking-label text-black/40">Category</span>
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className="mt-1 w-full rounded-card border border-black/10 bg-pure-white px-3 py-2.5 font-label text-xs uppercase tracking-label text-deep-indigo focus:outline-none"
+          >
+            {EVENT_CATEGORIES.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+        </label>
 
         {category === 'other' && (
           <label className="block">
@@ -221,7 +212,18 @@ export function EventEdit() {
               className="mt-1 w-full rounded-card border border-black/10 bg-pure-white px-3 py-2.5 font-body text-sm focus:outline-none"
             />
           </label>
+          <label className="flex-1">
+            <span className="font-label text-[11px] uppercase tracking-label text-black/40">Start time</span>
+            <input
+              type="time"
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
+              className="mt-1 w-full rounded-card border border-black/10 bg-pure-white px-3 py-2.5 font-body text-sm focus:outline-none"
+            />
+          </label>
+        </div>
 
+        <div className="flex gap-3">
           <label className="flex-1">
             <span className="font-label text-[11px] uppercase tracking-label text-black/40">Ends</span>
             <input
@@ -229,6 +231,15 @@ export function EventEdit() {
               value={endDate}
               min={startDate}
               onChange={(e) => setEndDate(e.target.value)}
+              className="mt-1 w-full rounded-card border border-black/10 bg-pure-white px-3 py-2.5 font-body text-sm focus:outline-none"
+            />
+          </label>
+          <label className="flex-1">
+            <span className="font-label text-[11px] uppercase tracking-label text-black/40">End time</span>
+            <input
+              type="time"
+              value={endTime}
+              onChange={(e) => setEndTime(e.target.value)}
               className="mt-1 w-full rounded-card border border-black/10 bg-pure-white px-3 py-2.5 font-body text-sm focus:outline-none"
             />
           </label>

@@ -1,12 +1,29 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Card } from '../components/Card'
 import { FilledButton, OutlinedButton } from '../components/Button'
 import { EntrySections } from '../components/EntrySections'
+import { EventVerseList } from '../components/EventVerseList'
 import { DEFAULT_TRANSLATION, fetchPassage } from '../lib/bible'
-import { LIBRARY_TYPES } from '../lib/library'
+import { LIBRARY_TYPES, sectionConfig, typeConfig } from '../lib/library'
 import { createEntry, createTag, deleteEntry, getEntry, listTags, updateEntry } from '../lib/db'
 
 const TRANSLATION_KEY = 'rooted:translation'
+
+function todayLocal() {
+  const d = new Date()
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+function formatEntryDate(dateStr, timeStr) {
+  if (!dateStr) return ''
+  const date = new Date(`${dateStr}T00:00:00`)
+  const formatted = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  return timeStr ? `${formatted} · ${timeStr}` : formatted
+}
 
 export function JournalEntry() {
   const { id } = useParams()
@@ -14,6 +31,7 @@ export function JournalEntry() {
   const navigate = useNavigate()
 
   const [entryId, setEntryId] = useState(id || null)
+  const [editing, setEditing] = useState(!id)
   const [title, setTitle] = useState(searchParams.get('title') || '')
   const [sections, setSections] = useState([])
   const [reference, setReference] = useState(searchParams.get('ref') || '')
@@ -22,6 +40,8 @@ export function JournalEntry() {
     const tag = searchParams.get('tag')
     return tag ? [tag] : []
   })
+  const [entryDate, setEntryDate] = useState(todayLocal())
+  const [entryTime, setEntryTime] = useState('')
   const [allTags, setAllTags] = useState([])
   const [newTagName, setNewTagName] = useState('')
   const [referenceQuote, setReferenceQuote] = useState('')
@@ -50,6 +70,8 @@ export function JournalEntry() {
       setReference(entry.reference || '')
       setType(entry.type || 'reflection')
       setTags(entry.tags || [])
+      setEntryDate(entry.entryDate || todayLocal())
+      setEntryTime(entry.entryTime || '')
       setLoading(false)
     })
   }, [id, navigate])
@@ -88,11 +110,13 @@ export function JournalEntry() {
     }
     setSaving(true)
     const timeout = setTimeout(() => {
-      autosave({ title, sections, reference: reference || null, type, tags }).finally(() => setSaving(false))
+      autosave({ title, sections, reference: reference || null, type, tags, entryDate, entryTime }).finally(() =>
+        setSaving(false),
+      )
     }, 700)
     return () => clearTimeout(timeout)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, sections, reference, type, tags])
+  }, [title, sections, reference, type, tags, entryDate, entryTime])
 
   function toggleTag(name) {
     setTags((t) => (t.includes(name) ? t.filter((x) => x !== name) : [...t, name]))
@@ -108,8 +132,12 @@ export function JournalEntry() {
 
   async function handleSave(e) {
     e.preventDefault()
-    await autosave({ title, sections, reference: reference || null, type, tags })
-    navigate('/journal')
+    await autosave({ title, sections, reference: reference || null, type, tags, entryDate, entryTime })
+    if (entryId) {
+      setEditing(false)
+    } else {
+      navigate('/journal')
+    }
   }
 
   async function handleDelete() {
@@ -123,6 +151,98 @@ export function JournalEntry() {
 
   if (loading) {
     return <p className="px-6 pt-10 font-body text-sm text-black/50">Loading…</p>
+  }
+
+  if (!editing) {
+    const cfg = typeConfig(type)
+    return (
+      <div className="min-h-screen px-6 pt-10 pb-6">
+        <div className="flex items-center justify-between">
+          <Link
+            to="/journal"
+            className="flex h-9 w-9 items-center justify-center rounded-pill border border-black/10 bg-pure-white font-display text-lg text-deep-indigo"
+            aria-label="Back to library"
+          >
+            ←
+          </Link>
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="rounded-pill border border-black/10 bg-pure-white px-4 py-2 font-label text-[11px] uppercase tracking-label text-deep-indigo"
+          >
+            Edit
+          </button>
+        </div>
+
+        <div className="mt-5">
+          <p className="font-label text-[11px] uppercase tracking-label text-black/40">
+            {cfg.singular} · {formatEntryDate(entryDate, entryTime)}
+          </p>
+          <h1 className="mt-1 font-display text-2xl font-semibold text-ink-black">{title}</h1>
+          {tags.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {tags.map((t) => (
+                <span
+                  key={t}
+                  className="rounded-pill bg-mist px-3 py-1 font-label text-[10px] uppercase tracking-label text-deep-indigo"
+                >
+                  {t}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {reference && (
+          <Card className="mt-4">
+            <p className="font-label text-[11px] uppercase tracking-label text-deep-indigo">{reference}</p>
+            {referenceQuote && <p className="mt-1 font-body text-sm text-black/60">“{referenceQuote}”</p>}
+          </Card>
+        )}
+
+        <div className="mt-4 flex flex-col gap-4">
+          {sections.length === 0 && <p className="font-body text-sm text-black/40">No sections yet.</p>}
+          {sections.map((section) => {
+            const sCfg = sectionConfig(section.type)
+            return (
+              <Card key={section.id}>
+                <p className="font-label text-[11px] uppercase tracking-label text-black/40">{sCfg?.label}</p>
+
+                {sCfg?.kind === 'scripture' && (
+                  <div className="mt-2">
+                    <EventVerseList verses={section.data.verses || []} readOnly />
+                  </div>
+                )}
+
+                {sCfg?.kind === 'prayer' && (
+                  <ul className="mt-2 flex flex-col gap-2">
+                    {(section.data.items || []).length === 0 && (
+                      <p className="font-body text-sm text-black/40">No points added.</p>
+                    )}
+                    {(section.data.items || []).map((item) => (
+                      <li key={item.id} className="flex items-start gap-2">
+                        <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-deep-indigo" />
+                        <span className="font-body text-sm text-black/80">{item.text}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                {sCfg?.kind === 'richtext' &&
+                  (section.data?.html ? (
+                    <div
+                      className="rich-text-editor mt-2 font-body text-sm text-black/80"
+                      dangerouslySetInnerHTML={{ __html: section.data.html }}
+                    />
+                  ) : (
+                    <p className="mt-2 font-body text-sm text-black/40">Nothing written yet.</p>
+                  ))}
+              </Card>
+            )
+          })}
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -151,6 +271,27 @@ export function JournalEntry() {
             {t.label}
           </button>
         ))}
+      </div>
+
+      <div className="mt-4 flex gap-3">
+        <label className="flex-1">
+          <span className="font-label text-[11px] uppercase tracking-label text-black/40">Date</span>
+          <input
+            type="date"
+            value={entryDate}
+            onChange={(e) => setEntryDate(e.target.value)}
+            className="mt-1 w-full rounded-card border border-black/10 bg-pure-white px-3 py-2 font-body text-sm focus:outline-none"
+          />
+        </label>
+        <label className="flex-1">
+          <span className="font-label text-[11px] uppercase tracking-label text-black/40">Time (optional)</span>
+          <input
+            type="time"
+            value={entryTime}
+            onChange={(e) => setEntryTime(e.target.value)}
+            className="mt-1 w-full rounded-card border border-black/10 bg-pure-white px-3 py-2 font-body text-sm focus:outline-none"
+          />
+        </label>
       </div>
 
       <label className="mt-4 block">

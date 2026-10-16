@@ -90,7 +90,9 @@ export function EventDetail() {
       <div className="px-6 pt-5">
         <h1 className="font-display text-2xl font-semibold text-ink-black">{event.title}</h1>
         <p className="mt-1 font-label text-[11px] uppercase tracking-label text-black/40">
-          {progress.totalDays} day{progress.totalDays === 1 ? '' : 's'} · {event.startDate} – {event.endDate}
+          {progress.totalDays} day{progress.totalDays === 1 ? '' : 's'} · {event.startDate}
+          {event.startTime ? ` ${event.startTime}` : ''} – {event.endDate}
+          {event.endTime ? ` ${event.endTime}` : ''}
         </p>
 
         {event.theme && (

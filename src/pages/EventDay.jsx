@@ -43,6 +43,8 @@ export function EventDay() {
   const [saving, setSaving] = useState(false)
   const [editingFocus, setEditingFocus] = useState(false)
   const [editingMinister, setEditingMinister] = useState(false)
+  const [editingNotes, setEditingNotes] = useState(false)
+  const [editingPrayerPoints, setEditingPrayerPoints] = useState(false)
   // Guards the autosave effect below from firing the instant a day's note
   // loads — only real edits (which flip this false) should trigger a save.
   const skipAutosaveRef = useRef(true)
@@ -85,6 +87,8 @@ export function EventDay() {
       setSavedAt(row?.updatedAt || null)
       setEditingFocus(!row?.focus)
       setEditingMinister(!row?.minister)
+      setEditingNotes(!hasText(row?.notes))
+      setEditingPrayerPoints(!hasText(row?.prayerPoints))
     })
   }, [id, date])
 
@@ -284,21 +288,57 @@ export function EventDay() {
           <EventVerseList verses={fields.verses} onAdd={handleAddVerse} onRemove={handleRemoveVerse} />
         )}
 
-        {activeTab === 'notes' && (
-          <RichTextEditor
-            value={fields.notes}
-            onChange={(html) => setFields((f) => ({ ...f, notes: html }))}
-            placeholder="Write your notes, reflections or what stood out to you today…"
-          />
-        )}
+        {activeTab === 'notes' &&
+          (editingNotes ? (
+            <RichTextEditor
+              value={fields.notes}
+              onChange={(html) => setFields((f) => ({ ...f, notes: html }))}
+              onBlur={() => setEditingNotes(false)}
+              placeholder="Write your notes, reflections or what stood out to you today…"
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setEditingNotes(true)}
+              className="block w-full rounded-card border border-black/10 bg-pure-white px-3 py-2.5 text-left"
+            >
+              {hasText(fields.notes) ? (
+                <span
+                  className="rich-text-editor font-body text-sm text-black/80"
+                  dangerouslySetInnerHTML={{ __html: fields.notes }}
+                />
+              ) : (
+                <span className="font-body text-sm text-black/30">
+                  Write your notes, reflections or what stood out to you today…
+                </span>
+              )}
+            </button>
+          ))}
 
-        {activeTab === 'prayerPoints' && (
-          <RichTextEditor
-            value={fields.prayerPoints}
-            onChange={(html) => setFields((f) => ({ ...f, prayerPoints: html }))}
-            placeholder="What to pray for…"
-          />
-        )}
+        {activeTab === 'prayerPoints' &&
+          (editingPrayerPoints ? (
+            <RichTextEditor
+              value={fields.prayerPoints}
+              onChange={(html) => setFields((f) => ({ ...f, prayerPoints: html }))}
+              onBlur={() => setEditingPrayerPoints(false)}
+              placeholder="What to pray for…"
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setEditingPrayerPoints(true)}
+              className="block w-full rounded-card border border-black/10 bg-pure-white px-3 py-2.5 text-left"
+            >
+              {hasText(fields.prayerPoints) ? (
+                <span
+                  className="rich-text-editor font-body text-sm text-black/80"
+                  dangerouslySetInnerHTML={{ __html: fields.prayerPoints }}
+                />
+              ) : (
+                <span className="font-body text-sm text-black/30">What to pray for…</span>
+              )}
+            </button>
+          ))}
 
         {saving && (
           <p className="mt-2 font-label text-[10px] uppercase tracking-label text-black/30">Saving…</p>

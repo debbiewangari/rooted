@@ -16,6 +16,14 @@ function toMs(iso) {
   return iso ? new Date(iso).getTime() : null
 }
 
+function todayDateString() {
+  const d = new Date()
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 function publicCoverUrl(path) {
   if (!path) return null
   const { data } = supabase.storage.from(COVERS_BUCKET).getPublicUrl(path)
@@ -43,6 +51,8 @@ function fromEntryRow(row) {
     reference: row.reference,
     type: row.type,
     tags: row.tags || [],
+    entryDate: row.entry_date,
+    entryTime: row.entry_time || '',
     createdAt: toMs(row.created_at),
     updatedAt: toMs(row.updated_at),
   }
@@ -60,7 +70,7 @@ export async function getEntry(id) {
   return data ? fromEntryRow(data) : null
 }
 
-export async function createEntry({ title, reference, type, tags, sections }) {
+export async function createEntry({ title, reference, type, tags, sections, entryDate, entryTime }) {
   const userId = await getUserId()
   const { data, error } = await supabase
     .from('journal_entries')
@@ -71,6 +81,8 @@ export async function createEntry({ title, reference, type, tags, sections }) {
       reference: reference || null,
       type: type || 'reflection',
       tags: Array.isArray(tags) ? tags : [],
+      entry_date: entryDate || todayDateString(),
+      entry_time: entryTime || '',
     })
     .select()
     .single()
@@ -85,6 +97,8 @@ export async function updateEntry(id, changes) {
   if (changes.reference !== undefined) payload.reference = changes.reference || null
   if (changes.type !== undefined) payload.type = changes.type
   if (changes.tags !== undefined) payload.tags = changes.tags
+  if (changes.entryDate !== undefined) payload.entry_date = changes.entryDate || todayDateString()
+  if (changes.entryTime !== undefined) payload.entry_time = changes.entryTime || ''
 
   const { data, error } = await supabase.from('journal_entries').update(payload).eq('id', id).select().single()
   if (error) throw error
@@ -260,7 +274,8 @@ function fromEventRow(row) {
     startDate: row.start_date,
     endDate: row.end_date,
     anchorVerse: row.anchor_verse || '',
-    time: row.time || '',
+    startTime: row.start_time || '',
+    endTime: row.end_time || '',
     theme: row.theme || '',
     coverImageUrl: publicCoverUrl(row.cover_image_path),
     createdAt: toMs(row.created_at),
@@ -286,7 +301,8 @@ export async function createCalendarEvent({
   startDate,
   endDate,
   anchorVerse,
-  time,
+  startTime,
+  endTime,
   customCategory,
   theme,
   coverImage,
@@ -310,7 +326,8 @@ export async function createCalendarEvent({
       start_date: startDate,
       end_date: endDate && endDate >= startDate ? endDate : startDate,
       anchor_verse: anchorVerse?.trim() || '',
-      time: time || '',
+      start_time: startTime || '',
+      end_time: endTime || '',
       theme: theme?.trim() || '',
       cover_image_path: coverPath,
     })
@@ -337,7 +354,8 @@ export async function updateCalendarEvent(id, changes) {
     payload.end_date = payload.start_date
   }
   if (changes.anchorVerse !== undefined) payload.anchor_verse = changes.anchorVerse?.trim() || ''
-  if (changes.time !== undefined) payload.time = changes.time || ''
+  if (changes.startTime !== undefined) payload.start_time = changes.startTime || ''
+  if (changes.endTime !== undefined) payload.end_time = changes.endTime || ''
   if (changes.theme !== undefined) payload.theme = changes.theme?.trim() || ''
 
   if (changes.coverImage) {

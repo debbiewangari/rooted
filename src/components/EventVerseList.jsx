@@ -6,7 +6,7 @@ const TRANSLATION_KEY = 'rooted:translation'
 
 // Each saved reference starts collapsed; tapping it fetches and shows the
 // actual scripture text (via the same Bible API/cache as the Bible tab).
-export function EventVerseList({ verses, onAdd, onRemove }) {
+export function EventVerseList({ verses, onAdd, onRemove, readOnly = false }) {
   const [newRef, setNewRef] = useState('')
   const [expandedId, setExpandedId] = useState(null)
   const [cache, setCache] = useState({})
@@ -64,13 +64,15 @@ export function EventVerseList({ verses, onAdd, onRemove }) {
                   {state?.status === 'done' && (
                     <p className="font-body text-sm italic text-black/70">“{state.text}”</p>
                   )}
-                  <button
-                    type="button"
-                    onClick={() => onRemove(entry.id)}
-                    className="mt-2 font-label text-[10px] uppercase tracking-label text-black/30"
-                  >
-                    Remove
-                  </button>
+                  {!readOnly && (
+                    <button
+                      type="button"
+                      onClick={() => onRemove(entry.id)}
+                      className="mt-2 font-label text-[10px] uppercase tracking-label text-black/30"
+                    >
+                      Remove
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -78,23 +80,25 @@ export function EventVerseList({ verses, onAdd, onRemove }) {
         })}
       </div>
 
-      <div className="mt-3 flex gap-2">
-        <input
-          value={newRef}
-          onChange={(e) => setNewRef(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault()
-              handleAdd()
-            }
-          }}
-          placeholder="e.g. Daniel 4:34-35"
-          className="flex-1 rounded-card border border-black/10 bg-pure-white px-3 py-2 font-body text-sm focus:outline-none"
-        />
-        <FilledButton type="button" onClick={handleAdd} className="px-5 py-2 text-[11px]">
-          Add
-        </FilledButton>
-      </div>
+      {!readOnly && (
+        <div className="mt-3 flex gap-2">
+          <input
+            value={newRef}
+            onChange={(e) => setNewRef(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                handleAdd()
+              }
+            }}
+            placeholder="e.g. Daniel 4:34-35"
+            className="flex-1 rounded-card border border-black/10 bg-pure-white px-3 py-2 font-body text-sm focus:outline-none"
+          />
+          <FilledButton type="button" onClick={handleAdd} className="px-5 py-2 text-[11px]">
+            Add
+          </FilledButton>
+        </div>
+      )}
     </div>
   )
 }

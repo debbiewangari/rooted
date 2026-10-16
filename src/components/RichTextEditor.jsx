@@ -6,7 +6,12 @@ import { useEffect, useRef } from 'react'
 // so that tradeoff is fine here.
 export function RichTextEditor({ value, onChange, onBlur, placeholder }) {
   const ref = useRef(null)
-  const lastValue = useRef(value)
+  // Starts as a sentinel (never equal to a real value) rather than `value`
+  // itself, so the sync effect below always writes the initial content into
+  // the DOM on mount — this component can now mount pre-populated (e.g.
+  // switching from a read-only view straight into edit mode), not just
+  // empty-then-filled.
+  const lastValue = useRef(null)
 
   useEffect(() => {
     if (ref.current && value !== lastValue.current && document.activeElement !== ref.current) {
