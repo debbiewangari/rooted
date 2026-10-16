@@ -203,15 +203,11 @@ export async function updateTheme(id, { title, subtitle, reference, imageBlob, r
 // A tag and a theme are the same idea now — tagging an entry "Provision"
 // should always have a themed card to open, even for tags created before
 // this existed. Looked up case-insensitively since tag names are too.
-export async function ensureThemeForTag(name) {
+export async function ensureThemeForTag(name, knownThemes) {
   const trimmed = name.trim()
-  const { data: existing, error: findError } = await supabase
-    .from('themes')
-    .select('*')
-    .ilike('title', trimmed)
-    .maybeSingle()
-  if (findError) throw findError
-  if (existing) return fromThemeRow(existing)
+  const all = knownThemes || (await listThemes())
+  const existing = all.find((t) => t.title.toLowerCase() === trimmed.toLowerCase())
+  if (existing) return existing
 
   const userId = await getUserId()
   const { data, error } = await supabase
@@ -226,9 +222,10 @@ export async function ensureThemeForTag(name) {
 // Self-healing backfill for tags created before themes/tags were unified —
 // cheap to call on every Home load since it's a no-op once caught up.
 export async function backfillThemesFromTags() {
-  const tags = await listTags()
+  const [tags, themes] = await Promise.all([listTags(), listThemes()])
   for (const tag of tags) {
-    await ensureThemeForTag(tag.name)
+    const created = await ensureThemeForTag(tag.name, themes)
+    if (!themes.some((t) => t.id === created.id)) themes.push(created)
   }
 }
 
