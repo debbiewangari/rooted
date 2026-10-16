@@ -45,7 +45,7 @@ export function EventCard({ event, progress }) {
     <Link to={`/events/${event.id}`}>
       <div className="flex items-center gap-3 rounded-card border border-black/10 bg-pure-white px-4 py-3">
         <span
-          className="mt-[3px] h-2.5 w-2.5 shrink-0 self-start rounded-full"
+          className="mt-1.5 h-2.5 w-2.5 shrink-0 self-start rounded-full"
           style={{ backgroundColor: categoryHex(event) }}
         />
         <div className="min-w-0 flex-1">
@@ -55,7 +55,7 @@ export function EventCard({ event, progress }) {
           </p>
           {progress.status === 'ongoing' && (
             <div className="mt-2 flex items-center gap-2">
-              <div className="h-1 w-20 overflow-hidden rounded-pill bg-black/8">
+              <div className="h-1 w-36 overflow-hidden rounded-pill bg-black/8">
                 <div
                   className="h-full rounded-pill bg-deep-indigo transition-all"
                   style={{ width: `${progress.percent}%` }}
