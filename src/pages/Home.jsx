@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { BotanicalSprig } from '../components/BotanicalLine'
 import { HamburgerMenu } from '../components/HamburgerMenu'
 import { Logo } from '../components/Logo'
 import { UpcomingEvents } from '../components/UpcomingEvents'
@@ -35,10 +34,7 @@ export function Home() {
   const [verse, setVerse] = useState(null)
   const [verseError, setVerseError] = useState(false)
   const [verseSaved, setVerseSaved] = useState(false)
-  const [verseExpanded, setVerseExpanded] = useState(false)
-  const [verseClamped, setVerseClamped] = useState(false)
   const scrollRef = useRef(null)
-  const quoteRef = useRef(null)
 
   useEffect(() => {
     // A tag and a theme are the same thing now — this catches any tag made
@@ -52,20 +48,11 @@ export function Home() {
       .then((v) => {
         setVerse(v)
         setVerseSaved(isVerseSaved(v.reference))
-        setVerseExpanded(false)
       })
       .catch(() => setVerseError(true))
   }, [])
 
   const homeThemes = themes.slice(0, MAX_HOME_THEMES)
-
-  // Measured against the clamped (3-line) height, so the toggle only shows
-  // up when the quote actually overflows it.
-  useEffect(() => {
-    const el = quoteRef.current
-    if (!el) return
-    setVerseClamped(el.scrollHeight > el.clientHeight + 1)
-  }, [verse])
 
   function handleThemeScroll() {
     const el = scrollRef.current
@@ -81,10 +68,9 @@ export function Home() {
 
   return (
     <div className="min-h-screen bg-white">
-      <div className="relative h-64 w-full overflow-hidden bg-gradient-to-b from-ink-black to-deep-indigo">
-        <div className="absolute inset-0 flex items-center justify-center">
-          <BotanicalSprig className="h-28 w-28 opacity-20" color="var(--color-pure-white)" />
-        </div>
+      <div className="relative h-64 w-full overflow-hidden bg-deep-indigo">
+        <img src="/hero-sunset.jpg" alt="" className="absolute inset-0 h-full w-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/5 to-black/10" />
 
         <header className="relative z-10 flex items-center justify-between px-6 pt-8">
           <Link to="/" className="text-pure-white">
@@ -122,32 +108,18 @@ export function Home() {
           </div>
           {verse && (
             <>
-              <p
-                ref={quoteRef}
-                className={`mt-2 font-body text-sm leading-relaxed text-ink-black ${
-                  verseExpanded ? '' : 'line-clamp-3'
-                }`}
-              >
-                “{verse.text}”
-              </p>
-              {verseClamped && (
-                <button
-                  type="button"
-                  onClick={() => setVerseExpanded((e) => !e)}
-                  className="mt-1 font-label text-[10px] uppercase tracking-label text-deep-indigo"
-                >
-                  {verseExpanded ? 'Show less' : 'Read more'}
-                </button>
-              )}
+              <p className="mt-2 line-clamp-3 font-body text-sm leading-relaxed text-ink-black">“{verse.text}”</p>
               <p className="mt-2 font-label text-[11px] uppercase tracking-label text-deep-indigo">
                 {verse.reference} · {verse.translation}
               </p>
-              <Link
-                to={`/bible?ref=${encodeURIComponent(verse.reference)}`}
-                className="mt-3 inline-flex items-center gap-1 font-label text-[11px] uppercase tracking-label text-deep-indigo"
-              >
-                Read and reflect <span aria-hidden="true">→</span>
-              </Link>
+              <div className="mt-3 border-t border-black/8 pt-3">
+                <Link
+                  to={`/bible?ref=${encodeURIComponent(verse.reference)}`}
+                  className="inline-flex items-center gap-1 font-label text-[11px] uppercase tracking-label text-deep-indigo"
+                >
+                  Read and reflect <span aria-hidden="true">→</span>
+                </Link>
+              </div>
             </>
           )}
           {!verse && !verseError && <p className="mt-3 font-body text-sm text-black/40">Loading…</p>}
@@ -201,7 +173,7 @@ export function Home() {
         </div>
 
         {homeThemes.length > 1 && (
-          <div className="mt-3 flex justify-center gap-1.5">
+          <div className="mt-6 flex justify-center gap-1.5">
             {homeThemes.map((theme, i) => (
               <span
                 key={theme.id}
