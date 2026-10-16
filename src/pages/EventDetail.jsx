@@ -60,7 +60,7 @@ export function EventDetail() {
 
   return (
     <div className="min-h-screen pb-6">
-      <div className="relative h-64 w-full overflow-hidden bg-warm-sand">
+      <div className="relative h-72 w-full overflow-hidden bg-warm-sand">
         {event.coverImageUrl ? (
           <img src={event.coverImageUrl} alt="" className="h-full w-full object-cover" />
         ) : (
@@ -68,7 +68,7 @@ export function EventDetail() {
             <BotanicalSprig className="h-20 w-20 opacity-50" color="var(--color-deep-indigo)" />
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-black/10" />
+        <div className="absolute inset-0 bg-gradient-to-t from-cream-paper via-transparent to-black/10" />
         <Link
           to="/calendar"
           className="absolute left-4 top-4 flex h-9 w-9 items-center justify-center rounded-pill bg-pure-white/90 font-display text-lg text-deep-indigo"
@@ -82,42 +82,46 @@ export function EventDetail() {
         >
           Edit
         </Link>
-        <span className="absolute bottom-4 left-4 rounded-pill bg-black/45 px-3 py-1 font-label text-[10px] uppercase tracking-label text-pure-white">
-          {STATUS_LABEL[progress.status]}
-        </span>
       </div>
 
-      <div className="px-6 pt-5">
-        <h1 className="font-display text-2xl font-semibold text-ink-black">{event.title}</h1>
-        <p className="mt-1 font-label text-[11px] uppercase tracking-label text-black/40">
-          {progress.totalDays} day{progress.totalDays === 1 ? '' : 's'} · {event.startDate}
-          {event.startTime ? ` ${event.startTime}` : ''} – {event.endDate}
-          {event.endTime ? ` ${event.endTime}` : ''}
-        </p>
+      <div className="-mt-10 px-6">
+        <Card>
+          <p className="font-label text-[11px] uppercase tracking-label text-deep-indigo">
+            {STATUS_LABEL[progress.status]}
+          </p>
+          <p className="mt-1 font-display text-xl font-semibold text-ink-black">{event.title}</p>
+          <p className="mt-0.5 font-body text-sm text-black/60">
+            {progress.totalDays} day{progress.totalDays === 1 ? '' : 's'} · {event.startDate}
+            {event.startTime ? ` ${event.startTime}` : ''} – {event.endDate}
+            {event.endTime ? ` ${event.endTime}` : ''}
+          </p>
+        </Card>
+      </div>
 
+      <div className="mt-6 px-6">
         {event.theme && (
-          <div className="mt-4">
+          <Card className="mb-4">
             <p className="font-label text-[10px] uppercase tracking-label text-black/40">Theme</p>
-            <p className="font-display text-base font-medium text-ink-black">{event.theme}</p>
-          </div>
+            <p className="mt-1 font-display text-base font-medium text-ink-black">{event.theme}</p>
+          </Card>
         )}
 
         {event.anchorVerse && (
-          <div className="mt-4">
+          <Card className="mb-4">
             <p className="font-label text-[10px] uppercase tracking-label text-black/40">Anchor Verse</p>
-            <p className="font-display text-base font-medium text-ink-black">{event.anchorVerse}</p>
+            <p className="mt-1 font-display text-base font-medium text-ink-black">{event.anchorVerse}</p>
             {anchorQuote && <p className="mt-1 font-body text-sm text-black/60">“{anchorQuote}”</p>}
-          </div>
+          </Card>
         )}
 
         {event.notes && (
-          <div className="mt-4">
+          <Card className="mb-4">
             <p className="font-label text-[10px] uppercase tracking-label text-black/40">About this event</p>
             <p className="mt-1 font-body text-sm text-black/70">{event.notes}</p>
-          </div>
+          </Card>
         )}
 
-        <Card className="mt-6">
+        <Card>
           <p className="font-label text-[10px] uppercase tracking-label text-black/40">Your Progress</p>
           <p className="mt-1 font-display text-lg font-semibold text-ink-black">
             {progress.status === 'upcoming' ? `Starts ${event.startDate}` : `Day ${progress.dayIndex} of ${progress.totalDays}`}

@@ -432,7 +432,7 @@ export async function listEventNotes(eventId) {
 
 // Standing prayer lists -------------------------------------------------
 function fromPrayerCardRow(row) {
-  return { id: row.id, eventId: row.event_id, title: row.title, items: row.items || [], createdAt: toMs(row.created_at) }
+  return { id: row.id, eventId: row.event_id, title: row.title, notes: row.notes || '', createdAt: toMs(row.created_at) }
 }
 
 export async function listPrayerCards(eventId) {
@@ -445,37 +445,17 @@ export async function createPrayerCard(eventId, title) {
   const userId = await getUserId()
   const { data, error } = await supabase
     .from('prayer_cards')
-    .insert({ user_id: userId, event_id: eventId, title: title.trim(), items: [] })
+    .insert({ user_id: userId, event_id: eventId, title: title.trim(), notes: '' })
     .select()
     .single()
   if (error) throw error
   return fromPrayerCardRow(data)
 }
 
-export async function addPrayerItem(cardId, text) {
-  const { data: card, error: fetchError } = await supabase
-    .from('prayer_cards')
-    .select('*')
-    .eq('id', cardId)
-    .maybeSingle()
-  if (fetchError) throw fetchError
-  if (!card) throw new Error(`Prayer card ${cardId} not found`)
-  const items = [...(card.items || []), { id: makeId(), text: text.trim() }]
-  const { data, error } = await supabase.from('prayer_cards').update({ items }).eq('id', cardId).select().single()
-  if (error) throw error
-  return fromPrayerCardRow(data)
-}
-
-export async function removePrayerItem(cardId, itemId) {
-  const { data: card, error: fetchError } = await supabase
-    .from('prayer_cards')
-    .select('*')
-    .eq('id', cardId)
-    .maybeSingle()
-  if (fetchError) throw fetchError
-  if (!card) return
-  const items = (card.items || []).filter((item) => item.id !== itemId)
-  const { data, error } = await supabase.from('prayer_cards').update({ items }).eq('id', cardId).select().single()
+// Free-form notebook content for a prayer list — same shape as any other
+// autosaved richtext field, no per-point "Add" step required.
+export async function updatePrayerCardNotes(cardId, notes) {
+  const { data, error } = await supabase.from('prayer_cards').update({ notes }).eq('id', cardId).select().single()
   if (error) throw error
   return fromPrayerCardRow(data)
 }
@@ -663,12 +643,16 @@ export async function importAllData(data) {
   }
 
   for (const card of data.prayerCards || []) {
+    let notes = card.notes || ''
+    if (!notes && Array.isArray(card.items) && card.items.length > 0) {
+      notes = `<ul>${card.items.map((item) => `<li>${item.text}</li>`).join('')}</ul>`
+    }
     const { error } = await supabase.from('prayer_cards').upsert({
       id: card.id,
       user_id: userId,
       event_id: card.eventId,
       title: card.title,
-      items: Array.isArray(card.items) ? card.items : [],
+      notes,
     })
     if (error) throw error
   }

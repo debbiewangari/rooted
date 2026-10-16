@@ -1,20 +1,31 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Card } from './Card'
 import { FilledButton } from './Button'
-import { addPrayerItem, createPrayerCard, deletePrayerCard, listPrayerCards, removePrayerItem } from '../lib/db'
+import { RichTextEditor } from './RichTextEditor'
+import { createPrayerCard, deletePrayerCard, listPrayerCards, updatePrayerCardNotes } from '../lib/db'
 
 // Standing prayer lists for a challenge — e.g. a gratitude list or ongoing
 // requests — separate from the per-day notes since they aren't tied to a
 // single date and get prayed through repeatedly across the whole event.
+// Each list is a free-form notebook page: open it (the dropdown) and write,
+// no per-point "Add" step.
 export function PrayerCards({ eventId }) {
   const [cards, setCards] = useState(null)
   const [expandedId, setExpandedId] = useState(null)
   const [addingCard, setAddingCard] = useState(false)
   const [newCardTitle, setNewCardTitle] = useState('')
-  const [newItemText, setNewItemText] = useState('')
+  const [draftNotes, setDraftNotes] = useState('')
+  const [saving, setSaving] = useState(false)
+  // The notes value as loaded, so the autosave effect can tell a real edit
+  // apart from merely opening a list — comparing against a remembered
+  // baseline (rather than a one-shot "skip the next run" flag) means it
+  // can't miss an edit just because the opened list started out empty and
+  // stayed empty for that one render (an unchanged '' never re-runs a
+  // string-keyed effect, so a flag expecting that run never gets consumed).
+  const baselineNotesRef = useRef('')
 
   function refresh() {
-    listPrayerCards(eventId).then(setCards)
+    return listPrayerCards(eventId).then(setCards)
   }
 
   useEffect(() => {
@@ -23,29 +34,37 @@ export function PrayerCards({ eventId }) {
   }, [eventId])
 
   function toggleCard(id) {
-    setExpandedId((prev) => (prev === id ? null : id))
-    setNewItemText('')
+    if (expandedId === id) {
+      setExpandedId(null)
+      return
+    }
+    const card = cards.find((c) => c.id === id)
+    baselineNotesRef.current = card?.notes || ''
+    setDraftNotes(card?.notes || '')
+    setExpandedId(id)
   }
+
+  useEffect(() => {
+    if (!expandedId || draftNotes === baselineNotesRef.current) return
+    setSaving(true)
+    const timeout = setTimeout(async () => {
+      await updatePrayerCardNotes(expandedId, draftNotes)
+      baselineNotesRef.current = draftNotes
+      setCards((prev) => (prev ? prev.map((c) => (c.id === expandedId ? { ...c, notes: draftNotes } : c)) : prev))
+      setSaving(false)
+    }, 700)
+    return () => clearTimeout(timeout)
+  }, [draftNotes, expandedId])
 
   async function handleCreateCard() {
     if (!newCardTitle.trim()) return
     const card = await createPrayerCard(eventId, newCardTitle)
     setNewCardTitle('')
     setAddingCard(false)
-    refresh()
+    await refresh()
+    baselineNotesRef.current = ''
+    setDraftNotes('')
     setExpandedId(card.id)
-  }
-
-  async function handleAddItem(cardId) {
-    if (!newItemText.trim()) return
-    await addPrayerItem(cardId, newItemText)
-    setNewItemText('')
-    refresh()
-  }
-
-  async function handleRemoveItem(cardId, itemId) {
-    await removePrayerItem(cardId, itemId)
-    refresh()
   }
 
   async function handleDeleteCard(cardId) {
@@ -106,57 +125,32 @@ export function PrayerCards({ eventId }) {
               >
                 <p className="font-display text-base font-medium text-ink-black">{card.title}</p>
                 <span className="font-label text-[10px] uppercase tracking-label text-black/40">
-                  {card.items.length} {expanded ? '▲' : '▼'}
+                  {expanded ? '▲' : '▼'}
                 </span>
               </button>
 
               {expanded && (
                 <div className="mt-3">
-                  <ul className="flex flex-col gap-2">
-                    {card.items.map((item) => (
-                      <li key={item.id} className="flex items-start gap-2">
-                        <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-deep-indigo" />
-                        <span className="flex-1 font-body text-sm text-black/80">{item.text}</span>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveItem(card.id, item.id)}
-                          className="font-label text-[10px] text-black/30"
-                          aria-label="Remove point"
-                        >
-                          ✕
-                        </button>
-                      </li>
-                    ))}
-                    {card.items.length === 0 && (
-                      <p className="font-body text-sm text-black/40">No points yet.</p>
+                  <RichTextEditor
+                    value={draftNotes}
+                    onChange={setDraftNotes}
+                    placeholder="Write what you're praying through…"
+                  />
+
+                  <div className="mt-2 flex items-center justify-between">
+                    {saving ? (
+                      <p className="font-label text-[10px] uppercase tracking-label text-black/30">Saving…</p>
+                    ) : (
+                      <span />
                     )}
-                  </ul>
-
-                  <div className="mt-3 flex gap-2">
-                    <input
-                      value={newItemText}
-                      onChange={(e) => setNewItemText(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault()
-                          handleAddItem(card.id)
-                        }
-                      }}
-                      placeholder="Add a point…"
-                      className="flex-1 rounded-card border border-black/10 bg-cream-paper px-3 py-2 font-body text-sm focus:outline-none"
-                    />
-                    <FilledButton type="button" onClick={() => handleAddItem(card.id)} className="px-5 py-2 text-[11px]">
-                      Add
-                    </FilledButton>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteCard(card.id)}
+                      className="font-label text-[10px] uppercase tracking-label text-black/40"
+                    >
+                      Delete list
+                    </button>
                   </div>
-
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteCard(card.id)}
-                    className="mt-3 font-label text-[10px] uppercase tracking-label text-black/40"
-                  >
-                    Delete list
-                  </button>
                 </div>
               )}
             </Card>
