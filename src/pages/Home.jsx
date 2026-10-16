@@ -5,16 +5,44 @@ import { Logo } from '../components/Logo'
 import { UpcomingEvents } from '../components/UpcomingEvents'
 import { fetchDailyVerse } from '../lib/dailyVerse'
 import { getGreeting, getName } from '../lib/profile'
+import { isVerseSaved, toggleSavedVerse } from '../lib/savedVerses'
 import { backfillThemesFromTags, listThemes } from '../lib/db'
 
 const THEME_CARD_WIDTH = 176 + 16 // w-44 + gap-4
 const MAX_HOME_THEMES = 3
+
+function MountainSkyline({ className = '' }) {
+  return (
+    <svg viewBox="0 0 400 140" preserveAspectRatio="none" className={className} aria-hidden="true">
+      <path d="M0 110 L60 55 L100 85 L150 35 L190 70 L230 40 L270 90 L320 60 L400 100 L400 140 L0 140 Z" fill="rgba(17,17,17,0.14)" />
+      <path d="M0 130 L80 85 L130 115 L180 70 L230 110 L290 75 L340 120 L400 95 L400 140 L0 140 Z" fill="rgba(17,17,17,0.24)" />
+    </svg>
+  )
+}
+
+function SearchIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <circle cx="11" cy="11" r="7" />
+      <path d="m20 20-3.5-3.5" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function BookmarkIcon({ filled }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.8">
+      <path d="M6 4h12v16l-6-4-6 4z" strokeLinejoin="round" />
+    </svg>
+  )
+}
 
 export function Home() {
   const [themes, setThemes] = useState([])
   const [activeTheme, setActiveTheme] = useState(0)
   const [verse, setVerse] = useState(null)
   const [verseError, setVerseError] = useState(false)
+  const [verseSaved, setVerseSaved] = useState(false)
   const scrollRef = useRef(null)
 
   useEffect(() => {
@@ -26,7 +54,10 @@ export function Home() {
       .catch((err) => console.error('backfillThemesFromTags failed', err))
       .finally(() => listThemes().then(setThemes))
     fetchDailyVerse()
-      .then(setVerse)
+      .then((v) => {
+        setVerse(v)
+        setVerseSaved(isVerseSaved(v.reference))
+      })
       .catch(() => setVerseError(true))
   }, [])
 
@@ -39,32 +70,63 @@ export function Home() {
     setActiveTheme(Math.min(Math.max(index, 0), homeThemes.length - 1))
   }
 
+  function handleToggleSaved() {
+    if (!verse) return
+    setVerseSaved(toggleSavedVerse(verse.reference))
+  }
+
   return (
     <div className="min-h-screen bg-white">
-      <header className="flex items-center justify-between px-6 pt-8">
-        <Link to="/" className="text-deep-indigo">
-          <Logo size={22} />
-        </Link>
-        <HamburgerMenu />
-      </header>
+      <div className="relative h-64 w-full overflow-hidden bg-gradient-to-b from-deep-indigo via-burnt-orange to-honey-gold">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-black/5" />
+        <MountainSkyline className="absolute bottom-0 left-0 h-20 w-full" />
 
-      <div className="px-6 pt-8">
-        <h1 className="font-display text-2xl font-medium leading-snug text-ink-black">
-          {getGreeting()},
-          <br />
-          {getName()}
-        </h1>
+        <header className="relative z-10 flex items-center justify-between px-6 pt-8">
+          <Link to="/" className="text-pure-white">
+            <Logo size={20} />
+          </Link>
+          <div className="flex items-center gap-4 text-pure-white">
+            <Link to="/bible" aria-label="Search the Bible">
+              <SearchIcon />
+            </Link>
+            <HamburgerMenu light />
+          </div>
+        </header>
+
+        <div className="relative z-10 px-6 pt-5">
+          <p className="font-label text-[10px] uppercase tracking-label text-pure-white/70">{getGreeting()},</p>
+          <h1 className="mt-0.5 font-display text-xl font-semibold text-pure-white">{getName()}</h1>
+          <p className="mt-1 font-body text-xs text-pure-white/80">Take a moment to be still in His presence.</p>
+        </div>
       </div>
 
-      <div className="mt-6 px-6">
-        <div className="rounded-card border border-black/8 bg-mist px-5 py-6">
-          <p className="font-label text-[11px] uppercase tracking-label text-black/40">Daily bread</p>
+      <div className="relative z-10 -mt-10 px-6">
+        <div className="rounded-card border border-black/8 bg-pure-white px-5 py-5 shadow-xl-2">
+          <div className="flex items-start justify-between gap-2">
+            <p className="font-label text-[11px] uppercase tracking-label text-black/40">Daily bread</p>
+            {verse && (
+              <button
+                type="button"
+                onClick={handleToggleSaved}
+                aria-label={verseSaved ? 'Remove bookmark' : 'Bookmark this verse'}
+                className={verseSaved ? 'text-deep-indigo' : 'text-black/30'}
+              >
+                <BookmarkIcon filled={verseSaved} />
+              </button>
+            )}
+          </div>
           {verse && (
             <>
-              <p className="mt-3 font-display text-lg leading-snug text-ink-black">“{verse.text}”</p>
-              <p className="mt-3 font-label text-[11px] uppercase tracking-label text-deep-indigo">
+              <p className="mt-2 font-display text-base leading-snug text-ink-black">“{verse.text}”</p>
+              <p className="mt-2 font-label text-[11px] uppercase tracking-label text-deep-indigo">
                 {verse.reference} · {verse.translation}
               </p>
+              <Link
+                to={`/bible?ref=${encodeURIComponent(verse.reference)}`}
+                className="mt-3 inline-flex items-center gap-1 font-label text-[11px] uppercase tracking-label text-deep-indigo"
+              >
+                Read and reflect <span aria-hidden="true">→</span>
+              </Link>
             </>
           )}
           {!verse && !verseError && <p className="mt-3 font-body text-sm text-black/40">Loading…</p>}
@@ -73,8 +135,6 @@ export function Home() {
           )}
         </div>
       </div>
-
-      <UpcomingEvents />
 
       <section className="relative z-10 mt-8 pb-10">
         <div className="flex items-baseline justify-between px-6">
@@ -131,6 +191,10 @@ export function Home() {
           </div>
         )}
       </section>
+
+      <UpcomingEvents />
+
+      <div className="pb-10" />
     </div>
   )
 }

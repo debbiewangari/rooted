@@ -7,8 +7,9 @@ const LINKS = [
   { to: '/settings', label: 'Settings' },
 ]
 
-export function HamburgerMenu() {
+export function HamburgerMenu({ light = false }) {
   const [open, setOpen] = useState(false)
+  const barColor = light ? 'bg-pure-white' : 'bg-ink-black'
 
   return (
     <div className="relative">
@@ -19,8 +20,8 @@ export function HamburgerMenu() {
         className="flex h-9 w-9 items-center justify-center"
       >
         <span className="flex flex-col gap-1.5">
-          <span className="block h-[1.5px] w-5 bg-ink-black" />
-          <span className="block h-[1.5px] w-5 bg-ink-black" />
+          <span className={`block h-[1.5px] w-5 ${barColor}`} />
+          <span className={`block h-[1.5px] w-5 ${barColor}`} />
         </span>
       </button>
 
