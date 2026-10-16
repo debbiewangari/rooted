@@ -131,7 +131,7 @@ export function Home() {
         </div>
       </div>
 
-      <section className="relative z-10 mt-8 pb-10">
+      <section className="relative z-10 mt-[72px] pb-10">
         <div className="flex items-baseline justify-between px-6">
           <h2 className="font-display text-xl font-semibold text-ink-black">Explore by Themes</h2>
           <Link to="/themes" className="font-label text-xs uppercase tracking-label text-deep-indigo">
