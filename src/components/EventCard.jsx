@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { BotanicalSprig } from './BotanicalLine'
 import { categoryHex } from '../lib/calendar'
 import { formatShortRange } from '../lib/calendarUtils'
 
@@ -44,10 +45,7 @@ export function EventCard({ event, progress }) {
   return (
     <Link to={`/events/${event.id}`}>
       <div className="flex items-center gap-3 rounded-card border border-black/10 bg-pure-white px-4 py-3">
-        <span
-          className="mt-1.5 h-2.5 w-2.5 shrink-0 self-start rounded-full"
-          style={{ backgroundColor: categoryHex(event) }}
-        />
+        <BotanicalSprig className="mt-0.5 h-4 w-4 shrink-0 self-start" color={categoryHex(event)} />
         <div className="min-w-0 flex-1">
           <p className="truncate font-display text-base font-medium text-ink-black">{event.title}</p>
           <p className="font-label text-[10px] uppercase tracking-label text-black/40">
