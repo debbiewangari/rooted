@@ -124,7 +124,7 @@ export function Home() {
               </p>
               <div className="mt-3 border-t border-black/8 pt-3">
                 <Link
-                  to={`/bible?ref=${encodeURIComponent(verse.reference)}`}
+                  to={`/bible/read?ref=${encodeURIComponent(verse.reference)}`}
                   className="inline-flex items-center gap-1 font-label text-[11px] uppercase tracking-label text-deep-indigo"
                 >
                   Read and reflect <span aria-hidden="true">→</span>

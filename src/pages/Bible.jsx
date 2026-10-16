@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { BotanicalSprig } from '../components/BotanicalLine'
 import { HamburgerMenu } from '../components/HamburgerMenu'
 import { Logo } from '../components/Logo'
-import { VerseList } from '../components/VerseList'
-import { DEFAULT_TRANSLATION, TRANSLATIONS, fetchPassage, recentPassages } from '../lib/bible'
+import { DEFAULT_TRANSLATION, TRANSLATIONS, recentPassages } from '../lib/bible'
 import { NEW_TESTAMENT, OLD_TESTAMENT } from '../lib/bibleBooks'
 import { getProfile, listHighlights } from '../lib/db'
 
@@ -46,16 +45,12 @@ function BookmarkIcon() {
 }
 
 export function Bible() {
-  const [searchParams] = useSearchParams()
-  const [query, setQuery] = useState(() => searchParams.get('ref') || '')
+  const navigate = useNavigate()
+  const [query, setQuery] = useState('')
   const [translation, setTranslation] = useState(
     () => localStorage.getItem(TRANSLATION_KEY) || DEFAULT_TRANSLATION,
   )
   const [versionOpen, setVersionOpen] = useState(false)
-  const [passage, setPassage] = useState(null)
-  const [status, setStatus] = useState('idle') // idle | loading | error
-  const [error, setError] = useState('')
-  const [fromCache, setFromCache] = useState(false)
 
   const [testament, setTestament] = useState('OT')
   const [expandedBook, setExpandedBook] = useState(null)
@@ -67,12 +62,6 @@ export function Bible() {
   useEffect(() => {
     localStorage.setItem(TRANSLATION_KEY, translation)
   }, [translation])
-
-  useEffect(() => {
-    const ref = searchParams.get('ref')
-    if (ref) load(ref)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams])
 
   useEffect(() => {
     getProfile()
@@ -88,36 +77,22 @@ export function Bible() {
       .catch(() => {})
   }, [])
 
-  async function load(reference, version = translation) {
-    setStatus('loading')
-    setError('')
-    try {
-      const { data, fromCache } = await fetchPassage(reference, version)
-      setPassage(data)
-      setFromCache(fromCache)
-      setStatus('idle')
-      recentPassages(1).then((rows) => setContinueReading(rows[0] || null))
-    } catch (err) {
-      setStatus('error')
-      setError(err.message || 'Could not load that passage.')
-    }
+  function goToPassage(reference, version = translation) {
+    navigate(`/bible/read?ref=${encodeURIComponent(reference)}&v=${encodeURIComponent(version)}`)
   }
 
   function handleSubmit(e) {
     e.preventDefault()
-    if (query.trim()) load(query)
+    if (query.trim()) goToPassage(query)
   }
 
   function handleTranslationChange(next) {
     setTranslation(next)
     setVersionOpen(false)
-    if (query.trim()) load(query, next)
   }
 
   function openChapter(bookName, chapter) {
-    const reference = `${bookName} ${chapter}`
-    setQuery(reference)
-    load(reference)
+    goToPassage(`${bookName} ${chapter}`)
   }
 
   const activeTranslation = TRANSLATIONS.find((t) => t.id === translation)
@@ -189,7 +164,7 @@ export function Bible() {
 
         <div className="mt-4 grid grid-cols-2 gap-3">
           <Link
-            to={continueReading ? `/bible?ref=${encodeURIComponent(continueReading.data.reference)}` : '#'}
+            to={continueReading ? `/bible/read?ref=${encodeURIComponent(continueReading.data.reference)}` : '#'}
             className="rounded-card border border-black/10 bg-pure-white px-4 py-3"
           >
             <BookOpenIcon />
@@ -235,31 +210,29 @@ export function Bible() {
             {books.map((book) => {
               const expanded = expandedBook === book.name
               return (
-                <div key={book.name} className="contents">
-                  <div className="overflow-hidden rounded-card border border-black/10 bg-pure-white">
-                    <button
-                      type="button"
-                      onClick={() => setExpandedBook(expanded ? null : book.name)}
-                      className="flex w-full items-center justify-between gap-3 px-4 py-3"
+                <div key={book.name} className="overflow-hidden rounded-card border border-black/10 bg-pure-white">
+                  <button
+                    type="button"
+                    onClick={() => setExpandedBook(expanded ? null : book.name)}
+                    className="flex w-full items-center justify-between gap-3 px-4 py-3"
+                  >
+                    <div className="min-w-0 text-left">
+                      <p className="font-display text-base font-medium text-ink-black">{book.name}</p>
+                      <p className="font-label text-[10px] uppercase tracking-label text-black/40">
+                        {book.chapters} chapter{book.chapters === 1 ? '' : 's'}
+                      </p>
+                    </div>
+                    <span
+                      className={`shrink-0 font-label text-base text-deep-indigo transition-transform ${
+                        expanded ? 'rotate-90' : ''
+                      }`}
                     >
-                      <div className="min-w-0 text-left">
-                        <p className="font-display text-base font-medium text-ink-black">{book.name}</p>
-                        <p className="font-label text-[10px] uppercase tracking-label text-black/40">
-                          {book.chapters} chapter{book.chapters === 1 ? '' : 's'}
-                        </p>
-                      </div>
-                      <span
-                        className={`shrink-0 font-label text-base text-deep-indigo transition-transform ${
-                          expanded ? 'rotate-90' : ''
-                        }`}
-                      >
-                        ›
-                      </span>
-                    </button>
-                  </div>
+                      ›
+                    </span>
+                  </button>
 
                   {expanded && (
-                    <div className="grid grid-cols-9 gap-1.5 rounded-card border border-black/10 bg-pure-white p-3">
+                    <div className="grid grid-cols-9 gap-1.5 border-t border-black/8 px-4 py-3">
                       {Array.from({ length: book.chapters }, (_, i) => i + 1).map((chapter) => (
                         <button
                           key={chapter}
@@ -277,41 +250,6 @@ export function Bible() {
             })}
           </div>
         </section>
-
-        <div className="mt-8">
-          {status === 'loading' && <p className="font-body text-sm text-black/50">Loading…</p>}
-          {status === 'error' && <p className="font-body text-sm text-burnt-orange">{error}</p>}
-
-          {passage && status !== 'loading' && (
-            <div className="rounded-card border border-black/8 bg-pure-white px-5 py-5 shadow-xl-2">
-              <div className="flex items-baseline justify-between gap-3">
-                <p className="font-display text-lg font-semibold text-ink-black">{passage.reference}</p>
-                <p className="font-label text-[10px] uppercase tracking-label text-black/40 whitespace-nowrap">
-                  {activeTranslation?.name}
-                </p>
-              </div>
-              {fromCache && (
-                <p className="mt-1 font-label text-[10px] uppercase tracking-label text-black/40">
-                  Shown from offline cache
-                </p>
-              )}
-              <VerseList
-                verses={passage.verses}
-                fallbackText={passage.text}
-                className="no-scrollbar mt-3 flex max-h-[50vh] flex-col gap-1 overflow-y-auto"
-              />
-
-              <div className="mt-4 border-t border-black/8 pt-4">
-                <Link
-                  to={`/journal/new?ref=${encodeURIComponent(`${passage.reference} (${activeTranslation?.name})`)}`}
-                  className="inline-flex items-center gap-1 font-label text-[11px] uppercase tracking-label text-deep-indigo"
-                >
-                  Reflect in journal <span aria-hidden="true">→</span>
-                </Link>
-              </div>
-            </div>
-          )}
-        </div>
       </div>
     </div>
   )
