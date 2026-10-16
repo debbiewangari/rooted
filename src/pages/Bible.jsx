@@ -238,7 +238,7 @@ export function Bible() {
                           key={chapter}
                           type="button"
                           onClick={() => openChapter(book.name, chapter)}
-                          className="aspect-square rounded-[10px] border border-black/10 bg-mist font-label text-[10px] text-deep-indigo"
+                          className="aspect-square rounded-[10px] border border-black/10 font-label text-[10px] text-deep-indigo"
                         >
                           {chapter}
                         </button>
