@@ -73,7 +73,7 @@ export function CalendarDay() {
       </Link>
 
       <div className="mt-4 flex items-baseline justify-between gap-3">
-        <h1 className="min-w-0 font-display text-2xl font-semibold text-ink-black">{formatLongDate(date)}</h1>
+        <h1 className="min-w-0 font-display text-lg font-semibold text-ink-black">{formatLongDate(date)}</h1>
         <button
           type="button"
           onClick={() => setDrawerOpen(true)}
