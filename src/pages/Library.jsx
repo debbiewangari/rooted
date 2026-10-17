@@ -106,18 +106,12 @@ export function Library() {
 
         <div className="relative z-10 px-6 pt-6">
           <h1 className="font-display text-2xl font-semibold text-ink-black">Journal</h1>
-          <p className="mt-1 font-body text-xs text-black/70">Everything you've gathered along the way.</p>
+          <p className="mt-1 font-body text-xs text-black/70">Capture what God is teaching you.</p>
         </div>
       </div>
 
       <div className="px-6">
-        <div className="mt-5 flex justify-end">
-          <Link to="/journal/new" className="font-label text-xs uppercase tracking-label text-deep-indigo">
-            + Add new
-          </Link>
-        </div>
-
-        <div className="relative z-10 mt-2 flex gap-2">
+        <div className="relative z-10 mt-5 flex gap-2">
           <div className="relative flex-1">
             <SearchIcon className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-black/30" />
             <input
