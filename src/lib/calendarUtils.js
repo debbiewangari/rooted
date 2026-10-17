@@ -67,10 +67,6 @@ export function formatWeekRange(days) {
   return `${monthAbbr(start.getMonth())} ${start.getDate()}–${end.getDate()}, ${end.getFullYear()}`
 }
 
-export function formatHeaderDate(date) {
-  return `${monthAbbr(date.getMonth())} ${date.getDate()}, ${date.getFullYear()}`
-}
-
 export function formatShortDate(key) {
   const [y, m, d] = key.split('-').map(Number)
   return `${monthAbbr(m - 1)} ${d}`

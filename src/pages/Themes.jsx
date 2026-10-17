@@ -48,11 +48,9 @@ export function Themes() {
 
   return (
     <div className="relative min-h-screen px-6 pt-10 pb-6">
-      <div className="flex items-baseline justify-between">
-        <div>
-          <p className="font-label text-xs uppercase tracking-label text-black/40">Browse</p>
-          <h1 className="mt-1 font-display text-2xl font-semibold text-ink-black">Themes</h1>
-        </div>
+      <p className="font-label text-xs uppercase tracking-label text-black/40">Browse</p>
+      <div className="mt-1 flex items-baseline justify-between">
+        <h1 className="font-display text-2xl font-semibold text-ink-black">Themes</h1>
         <Link to="/themes/new" className="font-label text-xs uppercase tracking-label text-deep-indigo">
           + Add new
         </Link>

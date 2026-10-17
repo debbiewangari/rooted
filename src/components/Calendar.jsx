@@ -5,7 +5,6 @@ import {
   MONTH_NAMES,
   WEEKDAY_LABELS,
   dateKey,
-  formatHeaderDate,
   formatWeekRange,
   getMonthMatrix,
   getWeekRow,
@@ -56,6 +55,11 @@ export function Calendar() {
     setPickerOpen((o) => !o)
   }
 
+  function goToday() {
+    setCursor(new Date())
+    setPickerOpen(false)
+  }
+
   function pickMonth(monthIndex) {
     setCursor(new Date(pickerYear, monthIndex, 1))
     setPickerOpen(false)
@@ -66,35 +70,72 @@ export function Calendar() {
       ? `${MONTH_NAMES[cursor.getMonth()]} ${cursor.getFullYear()}`
       : view === 'week'
         ? formatWeekRange(weekRow)
-        : formatHeaderDate(cursor)
+        : `${MONTH_NAMES[cursor.getMonth()].slice(0, 3)} ${cursor.getDate()}`
 
   const cursorKey = dateKey(cursor)
   const dayEvents = events
     .filter((e) => cursorKey >= e.startDate && cursorKey <= e.endDate)
     .sort((a, b) => a.startDate.localeCompare(b.startDate))
 
+  const isViewingToday =
+    view === 'day'
+      ? cursorKey === today
+      : view === 'week'
+        ? weekRow.some((d) => dateKey(d) === today)
+        : cursor.getFullYear() === new Date().getFullYear() && cursor.getMonth() === new Date().getMonth()
+
   return (
     <div>
-      <div className="flex items-center justify-between">
-        <button
-          type="button"
-          onClick={() => shift(-1)}
-          aria-label="Previous"
-          className="flex h-8 w-8 items-center justify-center rounded-pill border border-black/10 bg-pure-white font-display text-lg text-deep-indigo"
-        >
-          ‹
-        </button>
-        <button type="button" onClick={togglePicker} className="font-display text-lg font-semibold text-ink-black">
-          {headerLabel}
-        </button>
-        <button
-          type="button"
-          onClick={() => shift(1)}
-          aria-label="Next"
-          className="flex h-8 w-8 items-center justify-center rounded-pill border border-black/10 bg-pure-white font-display text-lg text-deep-indigo"
-        >
-          ›
-        </button>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-1">
+          <button
+            type="button"
+            onClick={() => shift(-1)}
+            aria-label="Previous"
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-pill border border-black/10 bg-pure-white font-display text-sm text-deep-indigo"
+          >
+            ‹
+          </button>
+          <button
+            type="button"
+            onClick={() => shift(1)}
+            aria-label="Next"
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-pill border border-black/10 bg-pure-white font-display text-sm text-deep-indigo"
+          >
+            ›
+          </button>
+          <button
+            type="button"
+            onClick={togglePicker}
+            className="min-w-0 truncate pl-1 font-display text-[15px] font-semibold text-ink-black"
+          >
+            {headerLabel}
+          </button>
+          {!isViewingToday && (
+            <button
+              type="button"
+              onClick={goToday}
+              className="shrink-0 font-label text-[10px] uppercase tracking-label text-deep-indigo"
+            >
+              Today
+            </button>
+          )}
+        </div>
+
+        <div className="flex shrink-0 rounded-pill border border-black/10 bg-pure-white p-0.5">
+          {VIEWS.map((v) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => setView(v)}
+              className={`rounded-pill px-2 py-1 font-label text-[9px] uppercase tracking-label transition-colors ${
+                view === v ? 'bg-deep-indigo text-pure-white' : 'text-deep-indigo'
+              }`}
+            >
+              {v}
+            </button>
+          ))}
+        </div>
       </div>
 
       {pickerOpen && (
@@ -137,21 +178,6 @@ export function Calendar() {
           </div>
         </div>
       )}
-
-      <div className="mt-3 flex rounded-pill border border-black/10 bg-pure-white p-1">
-        {VIEWS.map((v) => (
-          <button
-            key={v}
-            type="button"
-            onClick={() => setView(v)}
-            className={`flex-1 rounded-pill py-1.5 font-label text-[10px] uppercase tracking-label transition-colors ${
-              view === v ? 'bg-deep-indigo text-pure-white' : 'text-deep-indigo'
-            }`}
-          >
-            {v}
-          </button>
-        ))}
-      </div>
 
       {view === 'month' && (
         <>
@@ -199,28 +225,38 @@ export function Calendar() {
         <div className="mt-3 grid grid-cols-7 gap-1">
           {weekRow.map((date) => {
             const key = dateKey(date)
-            const cats = categoriesForDay(key)
             const isToday = key === today
+            const dayEvts = events
+              .filter((e) => key >= e.startDate && key <= e.endDate)
+              .sort((a, b) => a.startDate.localeCompare(b.startDate))
             return (
               <Link
                 key={key}
                 to={`/calendar/${key}`}
-                className={`flex flex-col items-center gap-1 rounded-card py-2 ${
-                  isToday ? 'bg-deep-indigo text-pure-white' : 'text-black/80'
-                }`}
+                className={`flex flex-col items-center gap-1.5 rounded-card py-2 ${isToday ? 'bg-mist' : ''}`}
               >
-                <span className="font-label text-[9px] uppercase tracking-label opacity-60">
+                <span className="font-label text-[9px] uppercase tracking-label text-black/40">
                   {WEEKDAY_LABELS[date.getDay()]}
                 </span>
-                <span className="font-display text-base">{date.getDate()}</span>
-                <span className="flex h-1.5 gap-0.5">
-                  {cats.slice(0, 3).map((c) => (
-                    <span
-                      key={c.id}
-                      className="h-1 w-1 rounded-full"
-                      style={{ backgroundColor: isToday ? '#ffffff' : c.hex }}
-                    />
-                  ))}
+                <span
+                  className={`flex h-6 w-6 items-center justify-center rounded-full font-display text-xs ${
+                    isToday ? 'bg-deep-indigo text-pure-white' : 'text-ink-black'
+                  }`}
+                >
+                  {date.getDate()}
+                </span>
+                <span className="flex flex-col items-center gap-0.5">
+                  {dayEvts.slice(0, 3).map((e) => {
+                    const cat = EVENT_CATEGORIES.find((c) => c.id === e.category)
+                    return (
+                      <span
+                        key={e.id}
+                        className="h-1 w-1 rounded-full"
+                        style={{ backgroundColor: cat?.hex }}
+                        aria-label={e.title}
+                      />
+                    )
+                  })}
                 </span>
               </Link>
             )
@@ -237,13 +273,22 @@ export function Calendar() {
             {dayEvents.map((e) => {
               const cat = EVENT_CATEGORIES.find((c) => c.id === e.category)
               return (
-                <div key={e.id} className="flex items-start gap-2 rounded-card border border-black/10 bg-pure-white px-3 py-2">
+                <Link
+                  key={e.id}
+                  to={`/events/${e.id}`}
+                  className="flex items-start gap-2 rounded-card border border-black/10 bg-pure-white px-3 py-2"
+                >
+                  {e.startTime && (
+                    <span className="w-12 shrink-0 pt-0.5 font-label text-[10px] uppercase tracking-label text-black/40">
+                      {e.startTime}
+                    </span>
+                  )}
                   <span className="mt-1 h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: cat?.hex }} />
                   <div className="min-w-0">
                     <p className="truncate font-display text-sm font-medium text-ink-black">{e.title}</p>
                     {e.notes && <p className="truncate font-body text-xs text-black/60">{e.notes}</p>}
                   </div>
-                </div>
+                </Link>
               )
             })}
           </div>
