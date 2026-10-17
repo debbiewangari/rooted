@@ -167,7 +167,7 @@ export function Bible() {
             to={continueReading ? `/bible/read?ref=${encodeURIComponent(continueReading.data.reference)}` : '#'}
             className="rounded-card border border-black/10 bg-pure-white px-4 py-3"
           >
-            <div className="flex h-9 w-9 items-center justify-center rounded-card bg-sky-blue/20">
+            <div className="flex h-9 w-9 items-center justify-center rounded-card bg-warm-sand/20">
               <BookOpenIcon />
             </div>
             <p className="mt-2 font-label text-[10px] uppercase tracking-label text-black/40">Continue Reading</p>
@@ -176,7 +176,7 @@ export function Bible() {
             </p>
           </Link>
           <Link to="/bible/saved" className="rounded-card border border-black/10 bg-pure-white px-4 py-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-card bg-honey-gold/20">
+            <div className="flex h-9 w-9 items-center justify-center rounded-card bg-mint-sage/20">
               <BookmarkIcon />
             </div>
             <p className="mt-2 font-label text-[10px] uppercase tracking-label text-black/40">Saved Verses</p>
