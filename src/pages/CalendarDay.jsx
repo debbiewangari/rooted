@@ -85,7 +85,16 @@ export function CalendarDay() {
 
       <div className="mt-6 flex flex-col gap-3">
         {events.length === 0 && (
-          <p className="font-body text-sm text-black/50">Nothing planned for this day yet.</p>
+          <button
+            type="button"
+            onClick={() => setDrawerOpen(true)}
+            className="w-full rounded-card border border-dashed border-black/15 bg-pure-white px-4 py-4 text-left"
+          >
+            <span className="font-display text-base font-semibold text-ink-black">Add to this day</span>
+            <span className="mt-0.5 block font-body text-sm text-black/50">
+              Tap to add a challenge, fast or event.
+            </span>
+          </button>
         )}
         {events.map((e) => {
           return (
@@ -121,17 +130,6 @@ export function CalendarDay() {
           )
         })}
       </div>
-
-      <button
-        type="button"
-        onClick={() => setDrawerOpen(true)}
-        className="mt-6 w-full rounded-card border border-dashed border-black/15 bg-pure-white px-4 py-4 text-left"
-      >
-        <span className="font-display text-base font-semibold text-ink-black">Add to this day</span>
-        <span className="mt-0.5 block font-body text-sm text-black/50">
-          Tap to add a challenge, fast or event.
-        </span>
-      </button>
 
       <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title="Add to this day">
         <form onSubmit={handleAdd} className="flex flex-col gap-3">
