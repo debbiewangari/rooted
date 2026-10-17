@@ -191,16 +191,9 @@ export function Library() {
               {hasFilter ? `Results (${filtered.length})` : 'Recently added'}
             </h2>
             {hasFilter ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveType('all')
-                  setQuery('')
-                }}
-                className="font-label text-xs uppercase tracking-label text-deep-indigo"
-              >
-                Clear
-              </button>
+              <Link to="/journal/new" className="font-label text-xs uppercase tracking-label text-deep-indigo">
+                + Add new
+              </Link>
             ) : (
               filtered.length > RECENT_LIMIT && (
                 <button
