@@ -220,7 +220,12 @@ export function ThemeDetail() {
                   to={`/journal/${entry.id}`}
                   className="flex items-center gap-3 rounded-card border border-black/10 bg-pure-white px-4 py-3"
                 >
-                  <Icon color="#234386" size={20} />
+                  <div
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-card"
+                    style={{ backgroundColor: `${cfg.hex}33` }}
+                  >
+                    <Icon color="#234386" size={18} />
+                  </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-display text-base font-medium text-ink-black">{entry.title}</p>
                     <p className="mt-0.5 font-body text-xs text-black/50">
