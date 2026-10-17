@@ -1,54 +1,60 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
-import { FilledButton } from '../components/Button'
+import { Link } from 'react-router-dom'
+import { BotanicalSprig } from '../components/BotanicalLine'
+import { HamburgerMenu } from '../components/HamburgerMenu'
+import { Logo } from '../components/Logo'
 import { TYPE_ICONS } from '../components/LibraryIcons'
-import { LIBRARY_TYPES, entryText, formatRelativeTime, matchesSearch, plainPreview, tagColor, typeConfig } from '../lib/library'
-import { createTag, deleteEntry, listEntries, listTags } from '../lib/db'
+import { LIBRARY_TYPES, formatRelativeTime, matchesSearch, typeConfig } from '../lib/library'
+import { getProfile, listEntries } from '../lib/db'
+
+const DEFAULT_HERO_IMAGE = '/hero-sunset.jpg'
+const RECENT_LIMIT = 3
+const REVISIT_AFTER_DAYS = 14
+
+const SORTS = [
+  { id: 'newest', label: 'Newest' },
+  { id: 'oldest', label: 'Oldest' },
+  { id: 'az', label: 'A–Z' },
+]
+
+function formatShortDate(timestamp) {
+  return new Date(timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+function SearchIcon({ className = '' }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className}>
+      <circle cx="11" cy="11" r="7" />
+      <path d="m20 20-3.5-3.5" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function FilterIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#234386" strokeWidth="1.8">
+      <path d="M4 6h16M7 12h10M10 18h4" strokeLinecap="round" />
+    </svg>
+  )
+}
 
 export function Library() {
-  const [searchParams] = useSearchParams()
   const [entries, setEntries] = useState(null)
-  const [tags, setTags] = useState([])
   const [query, setQuery] = useState('')
-  const [activeType, setActiveType] = useState(searchParams.get('type') || 'all')
-  const [activeTag, setActiveTag] = useState(searchParams.get('tag') || null)
-  const [addingTag, setAddingTag] = useState(false)
-  const [newTagName, setNewTagName] = useState('')
-  const [openMenuId, setOpenMenuId] = useState(null)
-
-  function refresh() {
-    listEntries().then(setEntries)
-    listTags().then(setTags)
-  }
+  const [activeType, setActiveType] = useState('all')
+  const [sort, setSort] = useState('newest')
+  const [filterOpen, setFilterOpen] = useState(false)
+  const [showAllRecent, setShowAllRecent] = useState(false)
+  const [heroImageUrl, setHeroImageUrl] = useState(DEFAULT_HERO_IMAGE)
 
   useEffect(() => {
-    refresh()
+    listEntries().then(setEntries)
+    getProfile()
+      .then((p) => {
+        if (p.heroImageUrl) setHeroImageUrl(`${p.heroImageUrl}?t=${p.heroImageUpdatedAt || 0}`)
+      })
+      .catch(() => {})
   }, [])
-
-  function selectType(id) {
-    setActiveType(id)
-    setActiveTag(null)
-  }
-
-  function selectTag(name) {
-    setActiveTag(name)
-    setActiveType('all')
-  }
-
-  async function handleAddTag(e) {
-    e.preventDefault()
-    if (!newTagName.trim()) return
-    await createTag(newTagName)
-    setNewTagName('')
-    setAddingTag(false)
-    listTags().then(setTags)
-  }
-
-  async function handleDelete(id) {
-    await deleteEntry(id)
-    setOpenMenuId(null)
-    refresh()
-  }
 
   const counts = useMemo(() => {
     const c = {}
@@ -62,221 +68,223 @@ export function Library() {
 
   const filtered = useMemo(() => {
     if (!entries) return []
-    return entries
+    const matches = entries
       .filter((e) => activeType === 'all' || (e.type || 'reflection') === activeType)
-      .filter((e) => !activeTag || (e.tags || []).includes(activeTag))
       .filter((e) => matchesSearch(e, query))
-  }, [entries, activeType, activeTag, query])
+    const sorted = matches.slice()
+    if (sort === 'newest') sorted.sort((a, b) => b.updatedAt - a.updatedAt)
+    else if (sort === 'oldest') sorted.sort((a, b) => a.updatedAt - b.updatedAt)
+    else if (sort === 'az') sorted.sort((a, b) => a.title.localeCompare(b.title))
+    return sorted
+  }, [entries, activeType, query, sort])
 
-  const hasFilter = activeType !== 'all' || activeTag || query.trim()
+  const revisitEntries = useMemo(() => {
+    if (!entries) return []
+    const cutoff = Date.now() - REVISIT_AFTER_DAYS * 24 * 60 * 60 * 1000
+    return entries
+      .filter((e) => e.updatedAt < cutoff)
+      .sort((a, b) => a.updatedAt - b.updatedAt)
+      .slice(0, 6)
+  }, [entries])
+
+  const hasFilter = activeType !== 'all' || query.trim()
+  const visibleRecent = hasFilter || showAllRecent ? filtered : filtered.slice(0, RECENT_LIMIT)
 
   return (
-    <div className="min-h-screen px-6 pt-10 pb-6">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="font-display text-2xl font-semibold text-ink-black">Library</h1>
-          <p className="mt-1 font-body text-sm text-black/60">Everything you've gathered along the way.</p>
+    <div className="min-h-screen pb-6">
+      <div className="relative h-56 w-full overflow-hidden bg-deep-indigo">
+        <img src={heroImageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/0 to-black/10" />
+        <BotanicalSprig className="absolute bottom-2 right-8 h-20 w-20 opacity-25" color="var(--color-pure-white)" />
+
+        <header className="relative z-10 flex items-center justify-between px-6 pt-8">
+          <Link to="/" className="text-pure-white">
+            <Logo size={20} />
+          </Link>
+          <HamburgerMenu light />
+        </header>
+
+        <div className="relative z-10 px-6 pt-6">
+          <h1 className="font-display text-2xl font-semibold text-ink-black">Journal</h1>
+          <p className="mt-1 font-body text-xs text-black/70">Everything you've gathered along the way.</p>
         </div>
-        <FilledButton to="/journal/new" className="shrink-0 px-5 py-3 text-xl leading-none">
-          +
-        </FilledButton>
       </div>
 
-      <input
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        placeholder="Search studies, sermons, prayers…"
-        className="mt-5 w-full rounded-card border border-black/10 bg-pure-white px-4 py-3 font-body text-sm focus:outline-none"
-      />
+      <div className="px-6">
+        <div className="mt-5 flex justify-end">
+          <Link to="/journal/new" className="font-label text-xs uppercase tracking-label text-deep-indigo">
+            + Add new
+          </Link>
+        </div>
 
-      <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto pb-1">
-        <button
-          type="button"
-          onClick={() => selectType('all')}
-          className={`shrink-0 rounded-pill px-4 py-2 font-label text-[11px] uppercase tracking-label ${
-            activeType === 'all' && !activeTag
-              ? 'bg-deep-indigo text-pure-white'
-              : 'border border-black/10 bg-pure-white text-deep-indigo'
-          }`}
-        >
-          All
-        </button>
-        {LIBRARY_TYPES.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => selectType(t.id)}
-            className={`shrink-0 rounded-pill px-4 py-2 font-label text-[11px] uppercase tracking-label ${
-              activeType === t.id
-                ? 'bg-deep-indigo text-pure-white'
-                : 'border border-black/10 bg-pure-white text-deep-indigo'
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+        <div className="relative z-10 mt-2 flex gap-2">
+          <div className="relative flex-1">
+            <SearchIcon className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-black/30" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search studies, sermons, prayers…"
+              className="w-full rounded-card border border-black/10 bg-pure-white py-3 pl-10 pr-4 font-body text-sm focus:outline-none"
+            />
+          </div>
 
-      {!hasFilter && (
-        <div className="mt-5 grid grid-cols-2 gap-3">
-          {LIBRARY_TYPES.map((t) => {
-            const Icon = TYPE_ICONS[t.id]
-            return (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => selectType(t.id)}
-                className="flex items-center justify-between rounded-card p-3 text-left"
-                style={{ backgroundColor: `${t.hex}33` }}
-              >
-                <span className="flex items-center gap-2.5">
-                  <Icon color="#234386" size={20} />
-                  <span>
-                    <span className="block font-display text-base font-medium text-ink-black">{t.label}</span>
-                    <span className="block font-label text-[10px] uppercase tracking-label text-black/50">
-                      {counts[t.id] || 0} entries
+          <div className="relative shrink-0">
+            <button
+              type="button"
+              onClick={() => setFilterOpen((o) => !o)}
+              aria-label="Sort entries"
+              className="flex h-full w-11 items-center justify-center rounded-card border border-black/10 bg-pure-white"
+            >
+              <FilterIcon />
+            </button>
+
+            {filterOpen && (
+              <>
+                <div className="fixed inset-0 z-30" onClick={() => setFilterOpen(false)} />
+                <div className="absolute right-0 top-full z-40 mt-2 w-36 overflow-hidden rounded-card border border-black/8 bg-pure-white shadow-xl-2">
+                  {SORTS.map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => {
+                        setSort(s.id)
+                        setFilterOpen(false)
+                      }}
+                      className={`block w-full px-4 py-3 text-left font-label text-[11px] uppercase tracking-label ${
+                        sort === s.id ? 'text-deep-indigo' : 'text-black/50'
+                      }`}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        {!hasFilter && (
+          <div className="mt-5 grid grid-cols-2 gap-3">
+            {LIBRARY_TYPES.map((t) => {
+              const Icon = TYPE_ICONS[t.id]
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setActiveType(t.id)}
+                  className="flex items-center justify-between rounded-card p-3 text-left"
+                  style={{ backgroundColor: `${t.hex}33` }}
+                >
+                  <span className="flex items-center gap-2.5">
+                    <Icon color="#234386" size={20} />
+                    <span>
+                      <span className="block font-display text-base font-medium text-ink-black">{t.label}</span>
+                      <span className="block font-label text-[10px] uppercase tracking-label text-black/50">
+                        {counts[t.id] || 0} entries
+                      </span>
                     </span>
                   </span>
-                </span>
-                <span className="font-display text-lg text-deep-indigo">›</span>
-              </button>
-            )
-          })}
-        </div>
-      )}
-
-      <section className="mt-8">
-        <div className="flex items-baseline justify-between">
-          <h2 className="font-display text-xl font-semibold text-ink-black">
-            {hasFilter ? `Results (${filtered.length})` : 'Recently added'}
-          </h2>
-          {hasFilter && (
-            <button
-              type="button"
-              onClick={() => {
-                setActiveType('all')
-                setActiveTag(null)
-                setQuery('')
-              }}
-              className="font-label text-xs uppercase tracking-label text-deep-indigo"
-            >
-              Clear
-            </button>
-          )}
-        </div>
-
-        <div className="mt-3 flex flex-col">
-          {entries === null && <p className="py-4 font-body text-sm text-black/50">Loading…</p>}
-          {entries && filtered.length === 0 && (
-            <p className="py-4 font-body text-sm text-black/50">
-              {hasFilter ? 'Nothing matches that filter.' : 'Nothing here yet — tap + to add your first entry.'}
-            </p>
-          )}
-          {(hasFilter ? filtered : filtered.slice(0, 5)).map((entry) => {
-            const cfg = typeConfig(entry.type || 'reflection')
-            const Icon = TYPE_ICONS[entry.type || 'reflection']
-            return (
-              <div key={entry.id} className="relative flex items-center gap-3 border-b border-black/10 py-3">
-                <div
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-card"
-                  style={{ backgroundColor: `${cfg.hex}33` }}
-                >
-                  <Icon color="#234386" size={18} />
-                </div>
-                <Link to={`/journal/${entry.id}`} className="min-w-0 flex-1">
-                  <p className="truncate font-display text-base font-medium text-ink-black">{entry.title}</p>
-                  <p className="truncate font-label text-[10px] uppercase tracking-label text-black/40">
-                    {cfg.singular}
-                    {entry.reference ? ` · ${entry.reference}` : ''}
-                  </p>
-                  {entryText(entry) && (
-                    <p className="mt-0.5 truncate font-body text-xs text-black/50">
-                      {plainPreview(entryText(entry), 80)}
-                    </p>
-                  )}
-                </Link>
-                <span className="shrink-0 font-label text-[10px] uppercase tracking-label text-black/30">
-                  {formatRelativeTime(entry.updatedAt)}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setOpenMenuId(openMenuId === entry.id ? null : entry.id)}
-                  className="shrink-0 px-1 font-display text-lg text-black/30"
-                  aria-label="More options"
-                >
-                  ⋯
+                  <span className="font-display text-lg text-deep-indigo">›</span>
                 </button>
-                {openMenuId === entry.id && (
-                  <div className="absolute right-0 top-10 z-10 flex flex-col overflow-hidden rounded-card border border-black/10 bg-pure-white shadow-xl-2">
-                    <Link
-                      to={`/journal/${entry.id}`}
-                      className="px-4 py-2 font-label text-[11px] uppercase tracking-label text-deep-indigo"
-                    >
-                      Edit
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(entry.id)}
-                      className="px-4 py-2 text-left font-label text-[11px] uppercase tracking-label text-burnt-orange"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
-      </section>
-
-      <section className="mt-8">
-        <div className="flex items-baseline justify-between">
-          <h2 className="font-display text-xl font-semibold text-ink-black">Explore by Themes</h2>
-          <button
-            type="button"
-            onClick={() => setAddingTag((v) => !v)}
-            className="font-label text-xs uppercase tracking-label text-deep-indigo"
-          >
-            + New
-          </button>
-        </div>
-
-        {addingTag && (
-          <form onSubmit={handleAddTag} className="mt-3 flex gap-2">
-            <input
-              value={newTagName}
-              onChange={(e) => setNewTagName(e.target.value)}
-              placeholder="e.g. Provision"
-              autoFocus
-              className="flex-1 rounded-card border border-black/10 bg-pure-white px-3 py-2 font-body text-sm focus:outline-none"
-            />
-            <FilledButton type="submit" className="px-5 py-2 text-[11px]">
-              Add
-            </FilledButton>
-          </form>
+              )
+            })}
+          </div>
         )}
 
-        <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto pb-1">
-          {tags.length === 0 && !addingTag && (
-            <p className="font-body text-sm text-black/40">No themes yet — tap + New to tag your content.</p>
-          )}
-          {tags.map((tag, i) => (
-            <button
-              key={tag.id}
-              type="button"
-              onClick={() => selectTag(tag.name)}
-              className={`flex shrink-0 items-center gap-2 rounded-pill px-4 py-2 font-label text-[11px] uppercase tracking-label ${
-                activeTag === tag.name
-                  ? 'bg-deep-indigo text-pure-white'
-                  : 'border border-black/10 bg-pure-white text-deep-indigo'
-              }`}
-            >
-              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: tagColor(i) }} />
-              {tag.name}
-            </button>
-          ))}
-        </div>
-      </section>
+        <section className="mt-8">
+          <div className="flex items-baseline justify-between">
+            <h2 className="font-display text-xl font-semibold text-ink-black">
+              {hasFilter ? `Results (${filtered.length})` : 'Recently added'}
+            </h2>
+            {hasFilter ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveType('all')
+                  setQuery('')
+                }}
+                className="font-label text-xs uppercase tracking-label text-deep-indigo"
+              >
+                Clear
+              </button>
+            ) : (
+              filtered.length > RECENT_LIMIT && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllRecent((v) => !v)}
+                  className="font-label text-xs uppercase tracking-label text-deep-indigo"
+                >
+                  {showAllRecent ? 'Show less' : 'View all'}
+                </button>
+              )
+            )}
+          </div>
+
+          <div className="mt-3 flex flex-col gap-3">
+            {entries === null && <p className="py-4 font-body text-sm text-black/50">Loading…</p>}
+            {entries && filtered.length === 0 && (
+              <p className="py-4 font-body text-sm text-black/50">
+                {hasFilter ? 'Nothing matches that filter.' : 'Nothing here yet — tap + Add new to start.'}
+              </p>
+            )}
+            {visibleRecent.map((entry) => {
+              const cfg = typeConfig(entry.type || 'reflection')
+              const Icon = TYPE_ICONS[entry.type || 'reflection']
+              return (
+                <Link
+                  key={entry.id}
+                  to={`/journal/${entry.id}`}
+                  className="flex items-center gap-3 rounded-card border border-black/10 bg-pure-white px-4 py-3"
+                >
+                  <div
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-card"
+                    style={{ backgroundColor: `${cfg.hex}33` }}
+                  >
+                    <Icon color="#234386" size={18} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-display text-base font-medium text-ink-black">{entry.title}</p>
+                    <p className="mt-0.5 font-body text-xs text-black/50">
+                      {cfg.singular} · {formatShortDate(entry.updatedAt)}
+                    </p>
+                  </div>
+                  <span className="shrink-0 text-black/30">›</span>
+                </Link>
+              )
+            })}
+          </div>
+        </section>
+
+        {revisitEntries.length > 0 && (
+          <section className="mt-8">
+            <h2 className="font-display text-xl font-semibold text-ink-black">Revisit later</h2>
+            <div className="no-scrollbar mt-3 flex gap-3 overflow-x-auto pb-1">
+              {revisitEntries.map((entry) => {
+                const cfg = typeConfig(entry.type || 'reflection')
+                const Icon = TYPE_ICONS[entry.type || 'reflection']
+                return (
+                  <Link
+                    key={entry.id}
+                    to={`/journal/${entry.id}`}
+                    className="w-44 shrink-0 rounded-card border border-black/10 bg-pure-white p-3"
+                  >
+                    <div
+                      className="flex h-9 w-9 items-center justify-center rounded-card"
+                      style={{ backgroundColor: `${cfg.hex}33` }}
+                    >
+                      <Icon color="#234386" size={16} />
+                    </div>
+                    <p className="mt-2 truncate font-display text-sm font-medium text-ink-black">{entry.title}</p>
+                    <p className="mt-0.5 font-body text-xs text-black/50">
+                      Updated {formatRelativeTime(entry.updatedAt)}
+                    </p>
+                  </Link>
+                )
+              })}
+            </div>
+          </section>
+        )}
+      </div>
     </div>
   )
 }
