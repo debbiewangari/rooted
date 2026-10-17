@@ -46,7 +46,7 @@ export function EventCard({ event, progress }) {
     <Link to={`/events/${event.id}`}>
       <div className="flex items-center gap-3 rounded-card border border-black/10 bg-pure-white px-4 py-3">
         <div
-          className="flex h-9 w-9 shrink-0 items-center justify-center self-start rounded-card"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-card"
           style={{ backgroundColor: `${categoryHex(event)}33` }}
         >
           <BotanicalSprig className="h-4 w-4" color="var(--color-deep-indigo)" strokeWidth={2.75} />
