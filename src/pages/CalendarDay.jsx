@@ -4,8 +4,8 @@ import { Card } from '../components/Card'
 import { FilledButton } from '../components/Button'
 import { Drawer } from '../components/Drawer'
 import { EVENT_CATEGORIES, categoryHex, categoryLabel } from '../lib/calendar'
-import { formatLongDate } from '../lib/calendarUtils'
-import { createCalendarEvent, deleteCalendarEvent, listCalendarEvents } from '../lib/db'
+import { formatLongDate, formatShortRange } from '../lib/calendarUtils'
+import { createCalendarEvent, listCalendarEvents } from '../lib/db'
 
 export function CalendarDay() {
   const { date } = useParams()
@@ -61,11 +61,6 @@ export function CalendarDay() {
     refresh()
   }
 
-  async function handleDelete(id) {
-    await deleteCalendarEvent(id)
-    refresh()
-  }
-
   return (
     <div className="min-h-screen px-6 pt-10 pb-6">
       <Link to="/calendar" className="font-label text-[11px] uppercase tracking-label text-deep-indigo">
@@ -103,8 +98,8 @@ export function CalendarDay() {
                 <div className="min-w-0">
                   <p className="font-display text-base font-medium text-ink-black">{e.title}</p>
                   {(e.startDate !== e.endDate || e.startTime) && (
-                    <p className="font-label text-[10px] uppercase tracking-label text-black/40">
-                      {e.startDate !== e.endDate ? `${e.startDate} – ${e.endDate}` : null}
+                    <p className="font-label text-[9px] uppercase tracking-label text-black/40">
+                      {e.startDate !== e.endDate ? formatShortRange(e.startDate, e.endDate) : null}
                       {e.startDate !== e.endDate && e.startTime ? ' · ' : null}
                       {e.startTime}
                       {e.endTime ? `–${e.endTime}` : ''}
@@ -119,13 +114,6 @@ export function CalendarDay() {
                   </span>
                 </span>
               </Link>
-              <button
-                type="button"
-                onClick={() => handleDelete(e.id)}
-                className="mt-2 font-label text-[10px] uppercase tracking-label text-black/40"
-              >
-                Remove
-              </button>
             </Card>
           )
         })}
