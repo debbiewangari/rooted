@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { BotanicalSprig } from '../components/BotanicalLine'
 import { Card } from '../components/Card'
 import { FilledButton, OutlinedButton } from '../components/Button'
 import { EntrySections } from '../components/EntrySections'
@@ -156,11 +157,15 @@ export function JournalEntry() {
   if (!editing) {
     const cfg = typeConfig(type)
     return (
-      <div className="min-h-screen px-6 pt-10 pb-6">
-        <div className="flex items-center justify-between">
+      <div className="min-h-screen pb-6">
+        <div className="relative h-40 w-full overflow-hidden bg-warm-sand">
+          <div className="flex h-full items-center justify-center">
+            <BotanicalSprig className="h-14 w-14 opacity-50" color="var(--color-deep-indigo)" />
+          </div>
+          <div className="absolute inset-0 bg-gradient-to-t from-cream-paper via-transparent to-black/10" />
           <Link
             to="/journal"
-            className="flex h-9 w-9 items-center justify-center rounded-pill border border-black/10 bg-pure-white font-display text-lg text-deep-indigo"
+            className="absolute left-4 top-4 flex h-9 w-9 items-center justify-center rounded-pill bg-pure-white/90 font-display text-lg text-deep-indigo"
             aria-label="Back to library"
           >
             ←
@@ -168,13 +173,13 @@ export function JournalEntry() {
           <button
             type="button"
             onClick={() => setEditing(true)}
-            className="rounded-pill border border-black/10 bg-pure-white px-4 py-2 font-label text-[11px] uppercase tracking-label text-deep-indigo"
+            className="absolute right-4 top-4 rounded-pill bg-pure-white/90 px-4 py-2 font-label text-[11px] uppercase tracking-label text-deep-indigo"
           >
             Edit
           </button>
         </div>
 
-        <div className="mt-5">
+        <div className="px-6 pt-4">
           <p className="font-label text-[11px] uppercase tracking-label text-black/40">
             {cfg.singular} · {formatEntryDate(entryDate, entryTime)}
           </p>
@@ -194,13 +199,15 @@ export function JournalEntry() {
         </div>
 
         {reference && (
-          <Card className="mt-4">
-            <p className="font-label text-[11px] uppercase tracking-label text-deep-indigo">{reference}</p>
-            {referenceQuote && <p className="mt-1 font-body text-sm text-black/60">“{referenceQuote}”</p>}
-          </Card>
+          <div className="px-6">
+            <Card className="mt-4">
+              <p className="font-label text-[11px] uppercase tracking-label text-deep-indigo">{reference}</p>
+              {referenceQuote && <p className="mt-1 font-body text-sm text-black/60">“{referenceQuote}”</p>}
+            </Card>
+          </div>
         )}
 
-        <div className="mt-4 flex flex-col gap-4">
+        <div className="px-6 mt-4 flex flex-col gap-4">
           {sections.length === 0 && <p className="font-body text-sm text-black/40">No sections yet.</p>}
           {sections.map((section) => {
             const sCfg = sectionConfig(section.type)
