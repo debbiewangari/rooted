@@ -7,8 +7,12 @@ import { DEFAULT_TRANSLATION, TRANSLATIONS, fetchPassage } from '../lib/bible'
 import { matchesSearch, typeConfig } from '../lib/library'
 import { getTheme, listEntriesByTag } from '../lib/db'
 
-function formatShortDate(timestamp) {
-  return new Date(timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+// entryDate is the date the user picked for the entry, separate from
+// updatedAt — parsed from its own y/m/d parts rather than `new
+// Date(dateStr)` so it can't shift a day across a UTC boundary.
+function formatEntryDate(dateStr) {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
 function FilterIcon() {
@@ -229,7 +233,7 @@ export function ThemeDetail() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-display text-base font-medium text-ink-black">{entry.title}</p>
                     <p className="mt-0.5 font-body text-xs text-black/50">
-                      {cfg.singular} · {formatShortDate(entry.updatedAt)}
+                      {cfg.singular} · {formatEntryDate(entry.entryDate)}
                     </p>
                   </div>
                   <span className="shrink-0 text-black/30">›</span>
