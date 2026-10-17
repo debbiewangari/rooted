@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { BotanicalSprig } from '../components/BotanicalLine'
+import { FilledButton } from '../components/Button'
+import { Drawer } from '../components/Drawer'
 import { HamburgerMenu } from '../components/HamburgerMenu'
 import { Logo } from '../components/Logo'
 import { TYPE_ICONS } from '../components/LibraryIcons'
 import { LIBRARY_TYPES, formatRelativeTime, matchesSearch, typeConfig } from '../lib/library'
-import { getProfile, listEntries } from '../lib/db'
+import { createEntry, getProfile, listEntries, listHighlights } from '../lib/db'
 
 const DEFAULT_HERO_IMAGE = '/hero-sunset.jpg'
 const RECENT_LIMIT = 3
@@ -39,6 +41,7 @@ function FilterIcon() {
 }
 
 export function Library() {
+  const navigate = useNavigate()
   const [entries, setEntries] = useState(null)
   const [query, setQuery] = useState('')
   const [activeType, setActiveType] = useState('all')
@@ -46,6 +49,12 @@ export function Library() {
   const [filterOpen, setFilterOpen] = useState(false)
   const [showAllRecent, setShowAllRecent] = useState(false)
   const [heroImageUrl, setHeroImageUrl] = useState(DEFAULT_HERO_IMAGE)
+  const [savedVerseCount, setSavedVerseCount] = useState(0)
+
+  const [addDrawerOpen, setAddDrawerOpen] = useState(false)
+  const [newTitle, setNewTitle] = useState('')
+  const [newType, setNewType] = useState('reflection')
+  const [creating, setCreating] = useState(false)
 
   useEffect(() => {
     listEntries().then(setEntries)
@@ -54,7 +63,22 @@ export function Library() {
         if (p.heroImageUrl) setHeroImageUrl(`${p.heroImageUrl}?t=${p.heroImageUpdatedAt || 0}`)
       })
       .catch(() => {})
+    listHighlights()
+      .then((rows) => setSavedVerseCount(rows.length))
+      .catch(() => {})
   }, [])
+
+  async function handleCreate(e) {
+    e.preventDefault()
+    if (!newTitle.trim()) return
+    setCreating(true)
+    const created = await createEntry({ title: newTitle, type: newType })
+    setCreating(false)
+    setAddDrawerOpen(false)
+    setNewTitle('')
+    setNewType('reflection')
+    navigate(`/journal/${created.id}`)
+  }
 
   const counts = useMemo(() => {
     const c = {}
@@ -161,11 +185,17 @@ export function Library() {
           <div className="mt-5 grid grid-cols-2 gap-3">
             {LIBRARY_TYPES.map((t) => {
               const Icon = TYPE_ICONS[t.id]
+              // Scripture isn't a journal_entries type anyone actually
+              // writes — it's the verses saved from the Bible tab, so this
+              // tile points at that list instead of filtering entries.
+              const isScripture = t.id === 'scripture'
+              const Tag = isScripture ? Link : 'button'
               return (
-                <button
+                <Tag
                   key={t.id}
-                  type="button"
-                  onClick={() => setActiveType(t.id)}
+                  type={isScripture ? undefined : 'button'}
+                  to={isScripture ? '/bible/saved' : undefined}
+                  onClick={isScripture ? undefined : () => setActiveType(t.id)}
                   className="flex items-center justify-between rounded-card p-3 text-left"
                   style={{ backgroundColor: `${t.hex}33` }}
                 >
@@ -174,12 +204,12 @@ export function Library() {
                     <span>
                       <span className="block font-display text-base font-medium text-ink-black">{t.label}</span>
                       <span className="block font-label text-[10px] uppercase tracking-label text-black/50">
-                        {counts[t.id] || 0} entries
+                        {isScripture ? `${savedVerseCount} verses` : `${counts[t.id] || 0} entries`}
                       </span>
                     </span>
                   </span>
                   <span className="font-display text-lg text-deep-indigo">›</span>
-                </button>
+                </Tag>
               )
             })}
           </div>
@@ -191,9 +221,13 @@ export function Library() {
               {hasFilter ? `Results (${filtered.length})` : 'Recently added'}
             </h2>
             {hasFilter ? (
-              <Link to="/journal/new" className="font-label text-xs uppercase tracking-label text-deep-indigo">
+              <button
+                type="button"
+                onClick={() => setAddDrawerOpen(true)}
+                className="font-label text-xs uppercase tracking-label text-deep-indigo"
+              >
                 + Add new
-              </Link>
+              </button>
             ) : (
               filtered.length > RECENT_LIMIT && (
                 <button
@@ -272,6 +306,37 @@ export function Library() {
           </section>
         )}
       </div>
+
+      <Drawer open={addDrawerOpen} onClose={() => setAddDrawerOpen(false)} title="Add to your journal">
+        <form onSubmit={handleCreate} className="flex flex-col gap-3">
+          <input
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
+            placeholder="e.g. God's Faithfulness"
+            autoFocus
+            className="w-full rounded-card border border-black/10 bg-pure-white px-3 py-2.5 font-body text-sm focus:outline-none"
+          />
+
+          <label className="block">
+            <span className="font-label text-[11px] uppercase tracking-label text-black/40">Type</span>
+            <select
+              value={newType}
+              onChange={(e) => setNewType(e.target.value)}
+              className="mt-1 w-full rounded-card border border-black/10 bg-pure-white px-3 py-2.5 font-label text-xs uppercase tracking-label text-deep-indigo focus:outline-none"
+            >
+              {LIBRARY_TYPES.filter((t) => t.id !== 'scripture').map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.singular}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <FilledButton type="submit" disabled={creating} className="mt-2">
+            {creating ? 'Creating…' : 'Create'}
+          </FilledButton>
+        </form>
+      </Drawer>
     </div>
   )
 }
