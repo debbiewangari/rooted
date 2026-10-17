@@ -6,7 +6,7 @@ export function CalendarPage() {
   return (
     <div className="min-h-screen px-6 pt-10 pb-6">
       <Link to="/events" className="font-label text-[11px] uppercase tracking-label text-deep-indigo">
-        ← Back to Experiences
+        ← Back to Encounters
       </Link>
 
       <div className="mt-4 flex items-baseline justify-between">

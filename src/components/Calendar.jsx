@@ -12,7 +12,7 @@ import {
 } from '../lib/calendarUtils'
 import { listCalendarEvents } from '../lib/db'
 
-const VIEWS = ['month', 'week', 'day']
+const VIEWS = ['day', 'week', 'month']
 
 export function Calendar() {
   const [cursor, setCursor] = useState(() => new Date())
@@ -30,8 +30,12 @@ export function Calendar() {
   const weeks = useMemo(() => getMonthMatrix(cursor.getFullYear(), cursor.getMonth()), [cursor])
   const weekRow = useMemo(() => getWeekRow(cursor), [cursor])
 
+  function eventsForDay(key) {
+    return events.filter((e) => key >= e.startDate && key <= e.endDate)
+  }
+
   function categoriesForDay(key) {
-    const ids = new Set(events.filter((e) => key >= e.startDate && key <= e.endDate).map((e) => e.category))
+    const ids = new Set(eventsForDay(key).map((e) => e.category))
     return EVENT_CATEGORIES.filter((c) => ids.has(c.id))
   }
 
@@ -193,6 +197,7 @@ export function Calendar() {
               const key = dateKey(date)
               const inMonth = date.getMonth() === cursor.getMonth()
               const cats = categoriesForDay(key)
+              const count = eventsForDay(key).length
               const isToday = key === today
               return (
                 <Link
@@ -204,7 +209,7 @@ export function Calendar() {
                 >
                   <span className="font-body text-xs">{date.getDate()}</span>
                   {cats.length > 0 && (
-                    <span className="flex gap-0.5">
+                    <span className="flex items-center gap-0.5">
                       {cats.slice(0, 3).map((c) => (
                         <span
                           key={c.id}
@@ -212,6 +217,13 @@ export function Calendar() {
                           style={{ backgroundColor: isToday ? '#ffffff' : c.hex }}
                         />
                       ))}
+                      {count > 1 && (
+                        <span
+                          className={`font-label text-[7px] leading-none ${isToday ? 'text-pure-white/70' : 'text-black/40'}`}
+                        >
+                          {count}
+                        </span>
+                      )}
                     </span>
                   )}
                 </Link>
@@ -233,7 +245,7 @@ export function Calendar() {
               <Link
                 key={key}
                 to={`/calendar/${key}`}
-                className={`flex flex-col items-center gap-1.5 rounded-card py-2 ${isToday ? 'bg-mist' : ''}`}
+                className={`flex flex-col items-center gap-1 rounded-card px-0.5 py-2 ${isToday ? 'bg-mist' : ''}`}
               >
                 <span className="font-label text-[9px] uppercase tracking-label text-black/40">
                   {WEEKDAY_LABELS[date.getDay()]}
@@ -245,18 +257,24 @@ export function Calendar() {
                 >
                   {date.getDate()}
                 </span>
-                <span className="flex flex-col items-center gap-0.5">
-                  {dayEvts.slice(0, 3).map((e) => {
+                <span className="flex w-full flex-col items-stretch gap-0.5">
+                  {dayEvts.slice(0, 2).map((e) => {
                     const cat = EVENT_CATEGORIES.find((c) => c.id === e.category)
                     return (
                       <span
                         key={e.id}
-                        className="h-1 w-1 rounded-full"
-                        style={{ backgroundColor: cat?.hex }}
-                        aria-label={e.title}
-                      />
+                        className="truncate rounded-[3px] px-0.5 py-[1px] text-center font-label text-[7px] leading-tight text-ink-black"
+                        style={{ backgroundColor: `${cat?.hex}33` }}
+                      >
+                        {e.title}
+                      </span>
                     )
                   })}
+                  {dayEvts.length > 2 && (
+                    <span className="text-center font-label text-[7px] leading-tight text-black/40">
+                      +{dayEvts.length - 2}
+                    </span>
+                  )}
                 </span>
               </Link>
             )
@@ -292,12 +310,6 @@ export function Calendar() {
               )
             })}
           </div>
-          <Link
-            to={`/calendar/${cursorKey}`}
-            className="mt-3 inline-block font-label text-[11px] uppercase tracking-label text-deep-indigo"
-          >
-            + Add / manage day →
-          </Link>
         </div>
       )}
     </div>

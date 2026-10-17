@@ -65,8 +65,10 @@ export function CalendarDay() {
 
   return (
     <div className="min-h-screen px-6 pt-10 pb-6">
-      <p className="font-label text-xs uppercase tracking-label text-black/40">Calendar</p>
-      <h1 className="mt-1 font-display text-2xl font-semibold text-ink-black">{formatLongDate(date)}</h1>
+      <Link to="/calendar" className="font-label text-[11px] uppercase tracking-label text-deep-indigo">
+        ← Back to Calendar
+      </Link>
+      <h1 className="mt-4 font-display text-2xl font-semibold text-ink-black">{formatLongDate(date)}</h1>
 
       <div className="mt-6 flex flex-col gap-3">
         {events.length === 0 && (

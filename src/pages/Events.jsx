@@ -89,8 +89,8 @@ export function Events() {
         </header>
 
         <div className="relative z-10 px-6 pt-6">
-          <h1 className="font-display text-2xl font-semibold text-ink-black">Experiences</h1>
-          <p className="mt-1 font-body text-xs text-black/70">Track your challenges, fasts and journeys of faith.</p>
+          <h1 className="font-display text-2xl font-semibold text-ink-black">Encounters</h1>
+          <p className="mt-1 font-body text-xs text-black/70">A space to seek His face.</p>
         </div>
       </div>
 
@@ -101,7 +101,7 @@ export function Events() {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search experiences…"
+              placeholder="Search encounters…"
               className="w-full rounded-card border border-black/10 bg-pure-white py-3 pl-10 pr-4 font-body text-sm focus:outline-none"
             />
           </div>
@@ -110,7 +110,7 @@ export function Events() {
             <button
               type="button"
               onClick={() => setFilterOpen((o) => !o)}
-              aria-label="Filter experiences"
+              aria-label="Filter encounters"
               className="flex h-full w-11 items-center justify-center rounded-card border border-black/10 bg-pure-white"
             >
               <FilterIcon />
