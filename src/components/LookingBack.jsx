@@ -1,20 +1,30 @@
 import { useEffect, useState } from 'react'
-import { BotanicalSprig } from './BotanicalLine'
-import { FilledButton } from './Button'
+import { Link } from 'react-router-dom'
+import { TYPE_ICONS } from './LibraryIcons'
+import { categoryHex } from '../lib/calendar'
 import { getEventProgress, enumerateDates } from '../lib/calendarUtils'
 import { entryText, plainPreview, typeConfig } from '../lib/library'
 import { listCalendarEvents, listEntries } from '../lib/db'
 
-const DEFAULT_IMAGE = '/hero-sunset.jpg'
 const DISMISSED_KEY = 'rooted:lookingBack:dismissed'
 const LAST_SHOWN_KEY = 'rooted:lookingBack:last'
 const MIN_ENTRY_AGE_DAYS = 14
+const SAMPLE_HEX = '#ffc400'
 
 function ClockIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#234386" strokeWidth="1.8">
       <circle cx="12" cy="12" r="8.5" />
       <path d="M12 7.5V12l3 2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function CalendarIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#234386" strokeWidth="1.8">
+      <rect x="4" y="5" width="16" height="15" rx="2" />
+      <path d="M4 9.5h16M8 3v4M16 3v4" strokeLinecap="round" />
     </svg>
   )
 }
@@ -57,7 +67,8 @@ function addDismissed(key) {
 const SAMPLE_ITEM = {
   key: 'sample',
   isSample: true,
-  imageUrl: DEFAULT_IMAGE,
+  iconHex: SAMPLE_HEX,
+  isEncounter: true,
   eyebrow: 'Completed Encounter',
   timeAgo: '2 months ago',
   title: 'Hallelujah Challenge',
@@ -78,7 +89,8 @@ function buildCandidates(events, entries) {
     const endTimestamp = new Date(`${event.endDate}T00:00:00`).getTime()
     candidates.push({
       key: `encounter:${event.id}`,
-      imageUrl: event.coverImageUrl || DEFAULT_IMAGE,
+      iconHex: categoryHex(event),
+      isEncounter: true,
       eyebrow: 'Completed Encounter',
       timeAgo: timeAgoLabel(endTimestamp),
       title: event.title,
@@ -100,7 +112,8 @@ function buildCandidates(events, entries) {
     const excerpt = plainPreview(entryText(entry), 120)
     candidates.push({
       key: `entry:${entry.id}`,
-      imageUrl: DEFAULT_IMAGE,
+      iconHex: cfg.hex,
+      entryType: entry.type,
       eyebrow: cfg.singular,
       timeAgo: timeAgoLabel(entryTimestamp),
       title: entry.title,
@@ -160,6 +173,8 @@ export function LookingBack() {
 
   if (!item) return null
 
+  const Icon = item.isEncounter ? CalendarIcon : TYPE_ICONS[item.entryType || 'reflection']
+
   return (
     <section className="relative z-10 mt-8 px-6 pb-2">
       <div className="flex items-center justify-between">
@@ -196,31 +211,39 @@ export function LookingBack() {
       </div>
       <p className="mt-1 font-body text-xs text-black/60">Some moments are worth returning to.</p>
 
-      <div className="mt-4 overflow-hidden rounded-card border border-black/8 bg-pure-white shadow-xl-2">
-        <div className="relative h-36 w-full overflow-hidden bg-warm-sand">
-          <img src={item.imageUrl} alt="" className="h-full w-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-black/5" />
-          {item.badge && (
-            <span className="absolute right-3 top-3 rounded-pill bg-pure-white/90 px-3 py-1 font-label text-[10px] uppercase tracking-label text-deep-indigo">
-              {item.badge}
-            </span>
-          )}
+      <div className="mt-4 rounded-card border border-black/8 bg-pure-white px-5 py-5 shadow-xl-2">
+        <div className="flex items-start gap-3">
+          <div
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-card"
+            style={{ backgroundColor: `${item.iconHex}33` }}
+          >
+            <Icon color="#234386" size={18} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <p className="font-label text-[11px] uppercase tracking-label text-black/40">
+                {item.eyebrow} · {item.timeAgo}
+              </p>
+              {item.badge && (
+                <span className="rounded-pill bg-mist px-2 py-0.5 font-label text-[9px] uppercase tracking-label text-deep-indigo">
+                  {item.badge}
+                </span>
+              )}
+            </div>
+            <p className="mt-1 font-display text-base font-semibold text-ink-black">{item.title}</p>
+            {item.subtitle && <p className="font-body text-xs text-black/50">{item.subtitle}</p>}
+          </div>
         </div>
 
-        <div className="relative px-5 py-5">
-          <BotanicalSprig
-            className="pointer-events-none absolute bottom-3 right-3 h-14 w-14 opacity-[0.07]"
-            color="var(--color-deep-indigo)"
-          />
-          <p className="font-label text-[10px] uppercase tracking-label text-black/40">
-            {item.eyebrow} · {item.timeAgo}
-          </p>
-          <p className="mt-1 font-display text-lg font-semibold text-ink-black">{item.title}</p>
-          {item.subtitle && <p className="font-body text-sm italic text-black/50">{item.subtitle}</p>}
-          <p className="relative mt-2 font-body text-sm text-black/60">{item.description}</p>
-          <FilledButton to={item.href} className="relative mt-4 w-full">
+        <p className="mt-3 font-body text-sm leading-relaxed text-black/70">{item.description}</p>
+
+        <div className="mt-3 border-t border-black/8 pt-3">
+          <Link
+            to={item.href}
+            className="inline-flex items-center gap-1 font-label text-[11px] uppercase tracking-label text-deep-indigo"
+          >
             {item.ctaLabel} <span aria-hidden="true">→</span>
-          </FilledButton>
+          </Link>
         </div>
       </div>
     </section>

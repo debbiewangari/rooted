@@ -192,60 +192,72 @@ export function Calendar() {
               </span>
             ))}
           </div>
-          <div className="mt-2 grid grid-cols-7 gap-1">
-            {weeks.flat().map((date) => {
-              const key = dateKey(date)
-              const inMonth = date.getMonth() === cursor.getMonth()
-              const cats = categoriesForDay(key)
-              const dayEvts = eventsForDay(key)
-              const isToday = key === today
+          <div className="mt-2 flex flex-col gap-1">
+            {weeks.map((week, weekIndex) => {
+              // A week with nothing in it at all shouldn't reserve the same
+              // dot/title space a busy week needs — that's what was reading
+              // as a gap: Sep 27–Oct 3 sat at full height with nothing to
+              // show in it, pushing the next row down for no reason.
+              const weekHasEvents = week.some((date) => eventsForDay(dateKey(date)).length > 0)
               return (
-                <Link
-                  key={key}
-                  to={`/calendar/${key}`}
-                  className={`flex min-h-[64px] flex-col items-center gap-0.5 rounded-card px-0.5 pt-1.5 ${
-                    isToday ? 'bg-deep-indigo text-pure-white' : inMonth ? 'text-black/80' : 'text-black/25'
-                  }`}
-                >
-                  <span className="font-body text-xs">{date.getDate()}</span>
-                  {/* Fixed-height even when empty, so a week with no events
-                      lines up with one that has them instead of leaving a
-                      taller-looking gap above the next row. */}
-                  <span className="flex h-1 items-center gap-0.5">
-                    {cats.slice(0, 3).map((c) => (
-                      <span
-                        key={c.id}
-                        className="h-1 w-1 rounded-full"
-                        style={{ backgroundColor: isToday ? '#ffffff' : c.hex }}
-                      />
-                    ))}
-                  </span>
-                  <span className="flex h-4 w-full flex-col items-stretch gap-px">
-                    {dayEvts.length > 0 && (
-                      <>
-                        {dayEvts.slice(0, 2).map((e) => (
-                          <span
-                            key={e.id}
-                            className={`truncate text-center font-label text-[6px] leading-tight ${
-                              isToday ? 'text-pure-white/80' : 'text-black/45'
-                            }`}
-                          >
-                            {e.title}
-                          </span>
-                        ))}
-                        {dayEvts.length > 2 && (
-                          <span
-                            className={`text-center font-label text-[6px] leading-tight ${
-                              isToday ? 'text-pure-white/70' : 'text-black/35'
-                            }`}
-                          >
-                            +{dayEvts.length - 2}
-                          </span>
+                <div key={weekIndex} className="grid grid-cols-7 gap-1">
+                  {week.map((date) => {
+                    const key = dateKey(date)
+                    const inMonth = date.getMonth() === cursor.getMonth()
+                    const cats = categoriesForDay(key)
+                    const dayEvts = eventsForDay(key)
+                    const isToday = key === today
+                    return (
+                      <Link
+                        key={key}
+                        to={`/calendar/${key}`}
+                        className={`flex ${weekHasEvents ? 'min-h-[64px]' : 'min-h-[40px]'} flex-col items-center gap-0.5 rounded-card px-0.5 pt-1.5 ${
+                          isToday ? 'bg-deep-indigo text-pure-white' : inMonth ? 'text-black/80' : 'text-black/25'
+                        }`}
+                      >
+                        <span className="font-body text-xs">{date.getDate()}</span>
+                        {weekHasEvents && (
+                          <>
+                            <span className="flex h-1 items-center gap-0.5">
+                              {cats.slice(0, 3).map((c) => (
+                                <span
+                                  key={c.id}
+                                  className="h-1 w-1 rounded-full"
+                                  style={{ backgroundColor: isToday ? '#ffffff' : c.hex }}
+                                />
+                              ))}
+                            </span>
+                            <span className="flex h-4 w-full flex-col items-stretch gap-px">
+                              {dayEvts.length > 0 && (
+                                <>
+                                  {dayEvts.slice(0, 2).map((e) => (
+                                    <span
+                                      key={e.id}
+                                      className={`truncate text-center font-label text-[6px] leading-tight ${
+                                        isToday ? 'text-pure-white/80' : 'text-black/45'
+                                      }`}
+                                    >
+                                      {e.title}
+                                    </span>
+                                  ))}
+                                  {dayEvts.length > 2 && (
+                                    <span
+                                      className={`text-center font-label text-[6px] leading-tight ${
+                                        isToday ? 'text-pure-white/70' : 'text-black/35'
+                                      }`}
+                                    >
+                                      +{dayEvts.length - 2}
+                                    </span>
+                                  )}
+                                </>
+                              )}
+                            </span>
+                          </>
                         )}
-                      </>
-                    )}
-                  </span>
-                </Link>
+                      </Link>
+                    )
+                  })}
+                </div>
               )
             })}
           </div>
