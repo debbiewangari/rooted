@@ -3,22 +3,13 @@ import { Link } from 'react-router-dom'
 import { TYPE_ICONS } from './LibraryIcons'
 import { categoryHex } from '../lib/calendar'
 import { getEventProgress, enumerateDates } from '../lib/calendarUtils'
-import { entryText, plainPreview, typeConfig } from '../lib/library'
+import { typeConfig } from '../lib/library'
 import { listCalendarEvents, listEntries } from '../lib/db'
 
 const DISMISSED_KEY = 'rooted:lookingBack:dismissed'
 const LAST_SHOWN_KEY = 'rooted:lookingBack:last'
 const MIN_ENTRY_AGE_DAYS = 14
 const SAMPLE_HEX = '#ffc400'
-
-function ClockIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#234386" strokeWidth="1.8">
-      <circle cx="12" cy="12" r="8.5" />
-      <path d="M12 7.5V12l3 2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
-}
 
 function CalendarIcon() {
   return (
@@ -44,6 +35,12 @@ function timeAgoLabel(timestamp) {
   }
   const months = Math.round(days / 30)
   return `${months} month${months === 1 ? '' : 's'} ago`
+}
+
+const LEARNT_TYPES = new Set(['study', 'scripture', 'sermon'])
+
+function entryVerb(type) {
+  return LEARNT_TYPES.has(type) ? 'learnt' : 'wrote'
 }
 
 function readDismissed() {
@@ -73,7 +70,7 @@ const SAMPLE_ITEM = {
   timeAgo: '2 months ago',
   title: 'Hallelujah Challenge',
   subtitle: 'The Lord Reigns',
-  description: 'Revisit the Scriptures, prayer points and notes you recorded during this season.',
+  description: 'Revisit what you wrote during this season.',
   badge: '25 days',
   ctaLabel: 'Revisit this season',
   href: '/events',
@@ -95,7 +92,7 @@ function buildCandidates(events, entries) {
       timeAgo: timeAgoLabel(endTimestamp),
       title: event.title,
       subtitle: event.theme || '',
-      description: 'Revisit the Scriptures, prayer points and notes you recorded during this season.',
+      description: 'Revisit what you wrote during this season.',
       badge: `${totalDays} day${totalDays === 1 ? '' : 's'}`,
       ctaLabel: 'Revisit this season',
       href: `/events/${event.id}`,
@@ -109,7 +106,6 @@ function buildCandidates(events, entries) {
     const ageDays = Math.floor((Date.now() - entryTimestamp) / 86400000)
     if (ageDays < MIN_ENTRY_AGE_DAYS) return
     const cfg = typeConfig(entry.type || 'reflection')
-    const excerpt = plainPreview(entryText(entry), 120)
     candidates.push({
       key: `entry:${entry.id}`,
       iconHex: cfg.hex,
@@ -118,7 +114,7 @@ function buildCandidates(events, entries) {
       timeAgo: timeAgoLabel(entryTimestamp),
       title: entry.title,
       subtitle: entry.reference || '',
-      description: excerpt || 'Revisit what you recorded.',
+      description: `Revisit what you ${entryVerb(entry.type)} on this topic.`,
       badge: null,
       ctaLabel: `Revisit this ${cfg.singular.toLowerCase()}`,
       href: `/journal/${entry.id}`,
@@ -177,13 +173,11 @@ export function LookingBack() {
 
   return (
     <section className="relative z-10 mt-8 px-6 pb-2">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <ClockIcon />
-          <h2 className="font-display text-xl font-semibold text-ink-black">Looking Back</h2>
-        </div>
+      <h2 className="font-display text-xl font-semibold text-ink-black">Looking Back</h2>
+
+      <div className="relative mt-4 rounded-card border border-black/8 bg-pure-white px-5 py-5 shadow-xl-2">
         {!item.isSample && (
-          <div className="relative">
+          <div className="absolute right-3 top-3">
             <button
               type="button"
               onClick={() => setMenuOpen((o) => !o)}
@@ -208,11 +202,8 @@ export function LookingBack() {
             )}
           </div>
         )}
-      </div>
-      <p className="mt-1 font-body text-xs text-black/60">Some moments are worth returning to.</p>
 
-      <div className="mt-4 rounded-card border border-black/8 bg-pure-white px-5 py-5 shadow-xl-2">
-        <div className="flex items-start gap-3">
+        <div className="flex items-start gap-3 pr-8">
           <div
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-card"
             style={{ backgroundColor: `${item.iconHex}33` }}

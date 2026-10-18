@@ -276,7 +276,7 @@ export function Calendar() {
               <Link
                 key={key}
                 to={`/calendar/${key}`}
-                className={`flex flex-col items-center gap-1 rounded-card px-0.5 py-2 ${isToday ? 'bg-mist' : ''}`}
+                className={`flex flex-col items-center gap-2 rounded-card px-0.5 py-2 ${isToday ? 'bg-mist' : ''}`}
               >
                 <span className="font-label text-[9px] uppercase tracking-label text-black/40">
                   {WEEKDAY_LABELS[date.getDay()]}
