@@ -14,7 +14,7 @@ const DEFAULT_DATA = {
 // A CMS-style block list: a Library entry is built from whichever sections
 // the user chooses (Notes, Scriptures, Bible Story, Prophetic Declarations,
 // Prayer, Testimony) — add the ones a given entry needs, remove the rest.
-export function EntrySections({ sections, onChange }) {
+export function EntrySections({ sections, onChange, onLink }) {
   const [addingType, setAddingType] = useState(false)
 
   const usedTypes = new Set(sections.map((s) => s.type))
@@ -71,6 +71,7 @@ export function EntrySections({ sections, onChange }) {
                   value={section.data.html ?? (section.data.items ? legacyItemsToHtml(section.data.items) : '')}
                   onChange={(html) => updateSection(section.id, { html })}
                   placeholder={cfg.placeholder}
+                  onLink={onLink}
                 />
               </div>
             )}

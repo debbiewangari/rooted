@@ -1,9 +1,17 @@
-import { useEffect, useMemo, useState } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Drawer } from './Drawer'
 import { FilledButton } from './Button'
 import { TYPE_ICONS } from './LibraryIcons'
-import { createLink, listAllEventNotes, listCalendarEvents, listEntries, listLinksFor, removeLink } from '../lib/db'
+import {
+  createLink,
+  listAllEventNotes,
+  listAllPrayerCards,
+  listCalendarEvents,
+  listEntries,
+  listLinksFor,
+  removeLink,
+} from '../lib/db'
 import { enumerateDates, formatShortDate } from '../lib/calendarUtils'
 import { typeConfig } from '../lib/library'
 
@@ -27,7 +35,12 @@ function targetKey(t) {
 // entry shows its own title; a day-note has none of its own, so it
 // borrows its event's title plus which day it is.
 async function loadAllTargets() {
-  const [entries, notes, events] = await Promise.all([listEntries(), listAllEventNotes(), listCalendarEvents()])
+  const [entries, notes, cards, events] = await Promise.all([
+    listEntries(),
+    listAllEventNotes(),
+    listAllPrayerCards(),
+    listCalendarEvents(),
+  ])
   const eventById = Object.fromEntries(events.map((e) => [e.id, e]))
 
   const entryTargets = entries.map((e) => ({
@@ -56,7 +69,20 @@ async function loadAllTargets() {
     }
   })
 
-  return [...entryTargets, ...noteTargets]
+  const cardTargets = cards.map((c) => {
+    const event = eventById[c.eventId]
+    const subtitle = event ? `Prayer list · ${event.title}` : 'Prayer list'
+    return {
+      type: 'prayer_card',
+      id: c.id,
+      title: c.title,
+      subtitle,
+      searchText: `${c.title} ${event?.title || ''}`.toLowerCase(),
+      href: event ? `/events/${event.id}` : null,
+    }
+  })
+
+  return [...entryTargets, ...noteTargets, ...cardTargets]
 }
 
 function TargetIcon({ target }) {
@@ -83,7 +109,7 @@ function TargetIcon({ target }) {
 // this testimony, the study that inspired that reflection). Works the
 // same for a journal entry or a single day's event notes, since either
 // can be a side of a link.
-export function EntryLinks({ selfType, selfId, ensureSelfId }) {
+export const EntryLinks = forwardRef(function EntryLinks({ selfType, selfId, ensureSelfId }, ref) {
   const [resolvedSelfId, setResolvedSelfId] = useState(selfId || null)
   const [links, setLinks] = useState(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -133,6 +159,11 @@ export function EntryLinks({ selfType, selfId, ensureSelfId }) {
     setDrawerOpen(true)
     if (!allTargets) setAllTargets(await loadAllTargets())
   }
+
+  // Lets a "Link" icon anywhere else on the page (e.g. inside a
+  // RichTextEditor's toolbar) open this same drawer, instead of each
+  // editor needing its own copy of the candidate-loading/search logic.
+  useImperativeHandle(ref, () => ({ open: openDrawer }))
 
   const linkedKeys = useMemo(() => new Set((links || []).map((l) => `${l.type}:${l.id}`)), [links])
 
@@ -271,4 +302,4 @@ export function EntryLinks({ selfType, selfId, ensureSelfId }) {
       </Drawer>
     </section>
   )
-}
+})

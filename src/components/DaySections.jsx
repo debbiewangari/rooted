@@ -28,7 +28,7 @@ function DragHandle(props) {
   )
 }
 
-function SortableSection({ section, typeDef, onUpdateData, onRemove }) {
+function SortableSection({ section, typeDef, onUpdateData, onRemove, onLink }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: section.id })
   const [editing, setEditing] = useState(!hasValue(section, typeDef.kind))
 
@@ -129,6 +129,7 @@ function SortableSection({ section, typeDef, onUpdateData, onRemove }) {
                 onChange={(html) => onUpdateData({ html })}
                 onBlur={() => setEditing(false)}
                 placeholder={`Write ${typeDef.name.toLowerCase()}…`}
+                onLink={onLink}
               />
             </div>
           ) : (
@@ -154,7 +155,7 @@ const DEFAULT_DATA = { scripture: { verses: [] }, text: { value: '' } }
 // built-in types are always offered, and a user can name a brand new type
 // which is then saved and reusable on any other day. Press-and-drag
 // (no arrows) reorders the cards.
-export function DaySections({ sections, typeDefs, onChange, onCreateType }) {
+export function DaySections({ sections, typeDefs, onChange, onCreateType, onLink }) {
   const [pickerOpen, setPickerOpen] = useState(false)
   const [newTypeName, setNewTypeName] = useState('')
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
@@ -207,6 +208,7 @@ export function DaySections({ sections, typeDefs, onChange, onCreateType }) {
               typeDef={typeDefFor(section.typeId)}
               onUpdateData={(data) => updateSectionData(section.id, data)}
               onRemove={() => removeSection(section.id)}
+              onLink={onLink}
             />
           ))}
         </SortableContext>

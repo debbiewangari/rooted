@@ -602,6 +602,15 @@ export async function deletePrayerCard(cardId) {
   if (error) throw error
 }
 
+// Every prayer card across every event for this user — used to build the
+// link picker's candidate list (not scoped to one event the way
+// listPrayerCards is).
+export async function listAllPrayerCards() {
+  const { data, error } = await supabase.from('prayer_cards').select('*')
+  if (error) throw error
+  return data.map(fromPrayerCardRow)
+}
+
 // Verse highlights --------------------------------------------------------
 export async function setHighlight(id, { color, reference, text }) {
   const userId = await getUserId()

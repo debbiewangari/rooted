@@ -4,6 +4,7 @@ import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } 
 import { CSS } from '@dnd-kit/utilities'
 import { Card } from './Card'
 import { FilledButton } from './Button'
+import { EntryLinks } from './EntryLinks'
 import { RichTextEditor } from './RichTextEditor'
 import { createPrayerCard, deletePrayerCard, listPrayerCards, reorderPrayerCards, updatePrayerCardNotes } from '../lib/db'
 
@@ -184,6 +185,7 @@ function SortablePrayerCard({
   onDelete,
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: card.id })
+  const linksRef = useRef(null)
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -224,6 +226,7 @@ function SortablePrayerCard({
                 onChange={onDraftChange}
                 onBlur={onStopEditing}
                 placeholder="Write what you're praying through…"
+                onLink={() => linksRef.current?.open()}
               />
             ) : (
               <button type="button" onClick={onStartEditing} className="block w-full text-left">
@@ -239,6 +242,8 @@ function SortablePrayerCard({
             )}
 
             {saving && <p className="mt-2 font-label text-[10px] uppercase tracking-label text-black/30">Saving…</p>}
+
+            <EntryLinks ref={linksRef} selfType="prayer_card" selfId={card.id} />
           </div>
         )}
       </Card>

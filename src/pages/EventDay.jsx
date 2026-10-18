@@ -54,6 +54,7 @@ export function EventDay() {
   // an edit or fire early regardless of effect ordering or how many times
   // an effect happens to re-run (e.g. React StrictMode's double-invoke).
   const loadedSectionsRef = useRef(EMPTY_SECTIONS)
+  const linksRef = useRef(null)
 
   useEffect(() => {
     getCalendarEvent(id).then((row) => {
@@ -211,10 +212,16 @@ export function EventDay() {
         </div>
 
         <div className="mt-6">
-          <DaySections sections={sections} typeDefs={typeDefs} onChange={setSections} onCreateType={handleCreateType} />
+          <DaySections
+            sections={sections}
+            typeDefs={typeDefs}
+            onChange={setSections}
+            onCreateType={handleCreateType}
+            onLink={() => linksRef.current?.open()}
+          />
         </div>
 
-        <EntryLinks selfType="day_note" selfId={noteId} ensureSelfId={ensureNoteId} />
+        <EntryLinks ref={linksRef} selfType="day_note" selfId={noteId} ensureSelfId={ensureNoteId} />
 
         <div className="mt-4">
           {saving && <p className="font-label text-[10px] uppercase tracking-label text-black/30">Saving…</p>}

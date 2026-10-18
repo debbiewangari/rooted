@@ -12,12 +12,33 @@ function ImageIcon() {
   )
 }
 
+function LinkGlyph() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path d="M9 15 15 9" strokeLinecap="round" />
+      <path
+        d="M10.5 6.5 12 5a4 4 0 0 1 5.66 5.66l-1.5 1.5M13.5 17.5 12 19a4 4 0 0 1-5.66-5.66l1.5-1.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
 function HighlightIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
       <path d="m9 15 6-6 3 3-6 6H9z" strokeLinejoin="round" />
       <path d="m5 19 2-4 2 2z" />
     </svg>
+  )
+}
+
+function TextColorIcon() {
+  return (
+    <span className="flex flex-col items-center leading-none">
+      <span className="font-display text-xs font-bold">A</span>
+      <span className="mt-0.5 h-[3px] w-4 rounded-full bg-gradient-to-r from-[#ed7328] via-[#234386] to-[#2f6b4f]" />
+    </span>
   )
 }
 
@@ -36,6 +57,16 @@ const FONT_OPTIONS = [
   { label: 'Handwritten', value: '"Caveat", cursive' },
 ]
 
+// Darker/more saturated than HIGHLIGHT_COLORS on purpose — those are meant
+// as pale background washes, these need to stay readable as foreground text.
+const TEXT_COLORS = [
+  { id: 'ink', hex: '#111111' },
+  { id: 'indigo', hex: '#234386' },
+  { id: 'orange', hex: '#ed7328' },
+  { id: 'forest', hex: '#2f6b4f' },
+  { id: 'wine', hex: '#a33b4e' },
+]
+
 const SIZE_OPTIONS = [
   { label: 'Small', value: '2' },
   { label: 'Normal', value: '3' },
@@ -52,12 +83,12 @@ function Divider() {
 // dependency pulled in just for formatting. Content is stored as the HTML
 // the browser produces; this surface is local-only and single-user, so
 // that tradeoff is fine here.
-export function RichTextEditor({ value, onChange, onBlur, placeholder }) {
+export function RichTextEditor({ value, onChange, onBlur, placeholder, onLink }) {
   const ref = useRef(null)
   const fileInputRef = useRef(null)
   const colorInputRef = useRef(null)
   const [uploading, setUploading] = useState(false)
-  const [openMenu, setOpenMenu] = useState(null) // 'font' | 'size' | 'highlight' | null
+  const [openMenu, setOpenMenu] = useState(null) // 'font' | 'size' | 'highlight' | 'color' | null
   // Opening the native file picker (or a native <input type="color">) blurs
   // the editable div the moment the dialog appears — without this, that
   // blur alone (before the user has picked anything) would fire `onBlur`
@@ -69,6 +100,10 @@ export function RichTextEditor({ value, onChange, onBlur, placeholder }) {
   // moment focus moves — so the selection is captured just before that
   // happens and restored right before applying the chosen color.
   const savedRangeRef = useRef(null)
+  // Which execCommand the custom-color input's result should apply to —
+  // the highlight swatch and the text-color swatch share one hidden
+  // <input type="color"> rather than each needing their own.
+  const pendingColorCommandRef = useRef('hiliteColor')
   // Starts as a sentinel (never equal to a real value) rather than `value`
   // itself, so the sync effect below always writes the initial content into
   // the DOM on mount — this component can now mount pre-populated (e.g.
@@ -88,6 +123,18 @@ export function RichTextEditor({ value, onChange, onBlur, placeholder }) {
   // blur guard above in that case.
   useEffect(() => {
     const input = fileInputRef.current
+    if (!input) return
+    function handleCancel() {
+      suppressBlurRef.current = false
+    }
+    input.addEventListener('cancel', handleCancel)
+    return () => input.removeEventListener('cancel', handleCancel)
+  }, [])
+
+  // Same fallback for the custom-color picker (shared by the highlight and
+  // text-color swatches).
+  useEffect(() => {
+    const input = colorInputRef.current
     if (!input) return
     function handleCancel() {
       suppressBlurRef.current = false
@@ -153,13 +200,16 @@ export function RichTextEditor({ value, onChange, onBlur, placeholder }) {
     }
   }
 
-  function openCustomColor() {
-    const sel = window.getSelection()
-    if (sel && sel.rangeCount > 0 && ref.current?.contains(sel.anchorNode)) {
-      savedRangeRef.current = sel.getRangeAt(0).cloneRange()
+  function openCustomColor(command) {
+    return () => {
+      pendingColorCommandRef.current = command
+      const sel = window.getSelection()
+      if (sel && sel.rangeCount > 0 && ref.current?.contains(sel.anchorNode)) {
+        savedRangeRef.current = sel.getRangeAt(0).cloneRange()
+      }
+      suppressBlurRef.current = true
+      colorInputRef.current?.click()
     }
-    suppressBlurRef.current = true
-    colorInputRef.current?.click()
   }
 
   function handleCustomColor(e) {
@@ -171,7 +221,7 @@ export function RichTextEditor({ value, onChange, onBlur, placeholder }) {
       sel.removeAllRanges()
       sel.addRange(range)
     }
-    exec('hiliteColor', value)
+    exec(pendingColorCommandRef.current, value)
     setOpenMenu(null)
   }
 
@@ -347,23 +397,90 @@ export function RichTextEditor({ value, onChange, onBlur, placeholder }) {
                   ))}
                   <button
                     type="button"
-                    onMouseDown={openCustomColor}
+                    onMouseDown={openCustomColor('hiliteColor')}
                     aria-label="Custom highlight color"
                     className="flex h-7 w-7 items-center justify-center rounded-pill border border-black/15 bg-[conic-gradient(red,orange,yellow,green,blue,violet,red)] font-label text-[8px] text-pure-white"
                   >
                     +
                   </button>
-                  <input
-                    ref={colorInputRef}
-                    type="color"
-                    onChange={handleCustomColor}
-                    className="sr-only"
-                  />
                 </div>
               </div>
             </>
           )}
         </div>
+
+        <div className="relative">
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => toggleMenu('color')}
+            className="flex h-7 items-center gap-0.5 rounded px-1 text-deep-indigo hover:bg-cream-paper"
+            aria-label="Text color"
+          >
+            <TextColorIcon />
+            <ChevronDown />
+          </button>
+          {openMenu === 'color' && (
+            <>
+              <div className="fixed inset-0 z-30" onClick={() => setOpenMenu(null)} />
+              <div className="absolute left-0 top-full z-40 mt-1 w-44 overflow-hidden rounded-card border border-black/8 bg-pure-white p-3 shadow-xl-2">
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      exec('foreColor', 'inherit')
+                      setOpenMenu(null)
+                    }}
+                    aria-label="Clear text color"
+                    className="flex h-7 w-7 items-center justify-center rounded-pill border border-black/15 bg-pure-white font-label text-[10px] text-black/40"
+                  >
+                    ✕
+                  </button>
+                  {TEXT_COLORS.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        exec('foreColor', c.hex)
+                        setOpenMenu(null)
+                      }}
+                      aria-label={c.id}
+                      className="h-7 w-7 rounded-pill border border-black/10"
+                      style={{ backgroundColor: c.hex }}
+                    />
+                  ))}
+                  <button
+                    type="button"
+                    onMouseDown={openCustomColor('foreColor')}
+                    aria-label="Custom text color"
+                    className="flex h-7 w-7 items-center justify-center rounded-pill border border-black/15 bg-[conic-gradient(red,orange,yellow,green,blue,violet,red)] font-label text-[8px] text-pure-white"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        <input ref={colorInputRef} type="color" onChange={handleCustomColor} className="sr-only" />
+
+        {onLink && (
+          <>
+            <Divider />
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={onLink}
+              className="flex h-7 w-7 items-center justify-center rounded text-deep-indigo hover:bg-cream-paper"
+              aria-label="Link to another entry"
+            >
+              <LinkGlyph />
+            </button>
+          </>
+        )}
 
         <Divider />
 

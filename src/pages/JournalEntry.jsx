@@ -53,6 +53,7 @@ export function JournalEntry() {
   // Guards the autosave effect from firing the instant an existing entry
   // loads — only real edits (which flip this false) should trigger a save.
   const skipAutosaveRef = useRef(Boolean(id))
+  const linksRef = useRef(null)
 
   useEffect(() => {
     listTags().then(setAllTags)
@@ -103,6 +104,26 @@ export function JournalEntry() {
     setEntryId(created.id)
     setSavedAt(Date.now())
     navigate(`/journal/${created.id}`, { replace: true })
+  }
+
+  // Linking needs a real id to point at — an entry a user hasn't typed
+  // anything into yet has none, so this forces creation (unlike autosave,
+  // which stays quiet until there's something worth saving).
+  async function ensureEntryId() {
+    if (entryId) return entryId
+    const created = await createEntry({
+      title: title.trim() || 'Untitled',
+      sections,
+      reference: reference || null,
+      type,
+      tags,
+      entryDate,
+      entryTime,
+    })
+    setEntryId(created.id)
+    setSavedAt(Date.now())
+    navigate(`/journal/${created.id}`, { replace: true })
+    return created.id
   }
 
   useEffect(() => {
@@ -240,7 +261,7 @@ export function JournalEntry() {
         </div>
 
         <div className="px-6">
-          <EntryLinks selfType="entry" selfId={entryId} />
+          <EntryLinks ref={linksRef} selfType="entry" selfId={entryId} />
         </div>
       </div>
     )
@@ -352,8 +373,10 @@ export function JournalEntry() {
       </div>
 
       <div className="mt-6 flex-1">
-        <EntrySections sections={sections} onChange={setSections} />
+        <EntrySections sections={sections} onChange={setSections} onLink={() => linksRef.current?.open()} />
       </div>
+
+      <EntryLinks ref={linksRef} selfType="entry" selfId={entryId} ensureSelfId={ensureEntryId} />
 
       <div className="mt-2">
         {saving && <p className="font-label text-[10px] uppercase tracking-label text-black/30">Saving…</p>}
