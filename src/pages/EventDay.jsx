@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { BotanicalSprig } from '../components/BotanicalLine'
 import { DaySections } from '../components/DaySections'
+import { EntryLinks } from '../components/EntryLinks'
 import { enumerateDates, formatLongDate } from '../lib/calendarUtils'
 import {
   builtInDaySectionTypes,
@@ -46,6 +47,7 @@ export function EventDay() {
   const [typeDefs, setTypeDefs] = useState(builtInDaySectionTypes())
   const [savedAt, setSavedAt] = useState(null)
   const [saving, setSaving] = useState(false)
+  const [noteId, setNoteId] = useState(null)
   // The sections value as loaded, so the autosave effect can tell a real
   // edit apart from merely opening a day — comparing against a remembered
   // reference (rather than a one-shot "skip the next run" flag) can't miss
@@ -88,6 +90,7 @@ export function EventDay() {
       loadedSectionsRef.current = loaded
       setSections(loaded)
       setSavedAt(row?.updatedAt || null)
+      setNoteId(row?.id || null)
     })
     return () => {
       cancelled = true
@@ -98,9 +101,19 @@ export function EventDay() {
   const dayIndex = dates.indexOf(date)
 
   async function persist(next) {
-    await setEventNote(id, date, { sections: next })
+    const savedId = await setEventNote(id, date, { sections: next })
     setSavedAt(Date.now())
     setSaving(false)
+    setNoteId(savedId)
+    return savedId
+  }
+
+  // The Link drawer needs a stable id to point a link at — a day that's
+  // never been touched has no row yet, so this creates one (persist is an
+  // upsert, so it's harmless to call even if a row already exists).
+  async function ensureNoteId() {
+    if (noteId) return noteId
+    return persist(sections)
   }
 
   // Debounced autosave — the single source of truth for persisting this
@@ -200,6 +213,8 @@ export function EventDay() {
         <div className="mt-6">
           <DaySections sections={sections} typeDefs={typeDefs} onChange={setSections} onCreateType={handleCreateType} />
         </div>
+
+        <EntryLinks selfType="day_note" selfId={noteId} ensureSelfId={ensureNoteId} />
 
         <div className="mt-4">
           {saving && <p className="font-label text-[10px] uppercase tracking-label text-black/30">Saving…</p>}

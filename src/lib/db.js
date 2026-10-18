@@ -442,6 +442,7 @@ export async function deleteCalendarEvent(id) {
 // Per-day event notes ---------------------------------------------------
 function fromEventNoteRow(row) {
   return {
+    id: row.id,
     eventId: row.event_id,
     date: row.date,
     sections: row.sections || [],
@@ -462,21 +463,35 @@ export async function getEventNote(eventId, date) {
 
 export async function setEventNote(eventId, date, { sections }) {
   const userId = await getUserId()
-  const { error } = await supabase.from('event_notes').upsert(
-    {
-      user_id: userId,
-      event_id: eventId,
-      date,
-      sections: Array.isArray(sections) ? sections : [],
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: 'event_id,date' },
-  )
+  const { data, error } = await supabase
+    .from('event_notes')
+    .upsert(
+      {
+        user_id: userId,
+        event_id: eventId,
+        date,
+        sections: Array.isArray(sections) ? sections : [],
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'event_id,date' },
+    )
+    .select('id')
+    .single()
   if (error) throw error
+  return data.id
 }
 
 export async function listEventNotes(eventId) {
   const { data, error } = await supabase.from('event_notes').select('*').eq('event_id', eventId)
+  if (error) throw error
+  return data.map(fromEventNoteRow)
+}
+
+// Every day-note across every event for this user — used to build the
+// link picker's candidate list (not scoped to one event the way
+// listEventNotes is).
+export async function listAllEventNotes() {
+  const { data, error } = await supabase.from('event_notes').select('*')
   if (error) throw error
   return data.map(fromEventNoteRow)
 }
@@ -611,6 +626,52 @@ export async function listHighlights() {
     text: row.text,
     updatedAt: toMs(row.updated_at),
   }))
+}
+
+// Links between journal entries / event day-notes --------------------------
+// A link is symmetric and can point at either kind of thing, so instead of
+// two foreign keys into one table it stores a (type, id) pair on each side
+// and always writes the pair in the same canonical order — that's what
+// lets the unique constraint catch "link A to B" happening twice (once
+// from each side) as the same row, and lets a single query answer "what's
+// linked to this" regardless of which side it was created from.
+function linkTargetKey(type, id) {
+  return `${type}:${id}`
+}
+
+function canonicalLinkPair(aType, aId, bType, bId) {
+  return linkTargetKey(aType, aId) <= linkTargetKey(bType, bId)
+    ? [aType, aId, bType, bId]
+    : [bType, bId, aType, aId]
+}
+
+export async function listLinksFor(type, id) {
+  const { data, error } = await supabase
+    .from('entry_links')
+    .select('*')
+    .or(`and(a_type.eq.${type},a_id.eq.${id}),and(b_type.eq.${type},b_id.eq.${id})`)
+  if (error) throw error
+  return data.map((row) => {
+    const isA = row.a_type === type && row.a_id === id
+    return { linkId: row.id, type: isA ? row.b_type : row.a_type, id: isA ? row.b_id : row.a_id }
+  })
+}
+
+export async function createLink(aType, aId, bType, bId) {
+  const userId = await getUserId()
+  const [at, ai, bt, bi] = canonicalLinkPair(aType, aId, bType, bId)
+  const { error } = await supabase
+    .from('entry_links')
+    .upsert(
+      { user_id: userId, a_type: at, a_id: ai, b_type: bt, b_id: bi },
+      { onConflict: 'a_type,a_id,b_type,b_id', ignoreDuplicates: true },
+    )
+  if (error) throw error
+}
+
+export async function removeLink(linkId) {
+  const { error } = await supabase.from('entry_links').delete().eq('id', linkId)
+  if (error) throw error
 }
 
 // Backup / restore + local-data migration ----------------------------------

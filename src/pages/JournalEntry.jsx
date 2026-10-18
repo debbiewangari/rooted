@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { BotanicalSprig } from '../components/BotanicalLine'
 import { Card } from '../components/Card'
 import { FilledButton, OutlinedButton } from '../components/Button'
+import { EntryLinks } from '../components/EntryLinks'
 import { EntrySections } from '../components/EntrySections'
 import { EventVerseList } from '../components/EventVerseList'
 import { DEFAULT_TRANSLATION, fetchPassage } from '../lib/bible'
@@ -236,6 +237,10 @@ export function JournalEntry() {
               </Card>
             )
           })}
+        </div>
+
+        <div className="px-6">
+          <EntryLinks selfType="entry" selfId={entryId} />
         </div>
       </div>
     )
