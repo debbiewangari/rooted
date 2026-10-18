@@ -192,7 +192,7 @@ export function Calendar() {
               </span>
             ))}
           </div>
-          <div className="mt-1 grid grid-cols-7 gap-1">
+          <div className="mt-2 grid grid-cols-7 gap-1">
             {weeks.flat().map((date) => {
               const key = dateKey(date)
               const inMonth = date.getMonth() === cursor.getMonth()
