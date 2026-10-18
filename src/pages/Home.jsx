@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { BotanicalSprig } from '../components/BotanicalLine'
 import { HamburgerMenu } from '../components/HamburgerMenu'
 import { Logo } from '../components/Logo'
+import { LookingBack } from '../components/LookingBack'
 import { UpcomingEvents } from '../components/UpcomingEvents'
 import { fetchDailyVerse } from '../lib/dailyVerse'
 import { verseKey } from '../lib/bible'
@@ -224,6 +225,8 @@ export function Home() {
       </section>
 
       <UpcomingEvents />
+
+      <LookingBack />
 
       <div className="pb-10" />
     </div>
