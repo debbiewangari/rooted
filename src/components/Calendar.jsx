@@ -192,7 +192,7 @@ export function Calendar() {
               </span>
             ))}
           </div>
-          <div className="mt-2 flex flex-col gap-1">
+          <div className="mt-4 flex flex-col gap-1">
             {weeks.map((week, weekIndex) => {
               // A week with nothing in it at all shouldn't reserve the same
               // dot/title space a busy week needs — that's what was reading
