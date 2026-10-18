@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { HIGHLIGHT_COLORS } from '../lib/bible'
+import { resolveHighlightHex } from '../lib/bible'
 import { listHighlights, removeHighlight } from '../lib/db'
 
 export function SavedVerses() {
@@ -32,12 +32,12 @@ export function SavedVerses() {
 
       <div className="mt-6 flex flex-col gap-3">
         {rows?.map((row) => {
-          const color = HIGHLIGHT_COLORS.find((c) => c.id === row.color)
+          const hex = resolveHighlightHex(row.color)
           return (
             <div
               key={row.id}
               className="rounded-card border border-black/10 bg-pure-white px-4 py-3"
-              style={color ? { backgroundColor: `${color.hex}26` } : undefined}
+              style={hex ? { backgroundColor: `${hex}26` } : undefined}
             >
               <div className="flex items-start justify-between gap-3">
                 <p className="font-label text-[11px] uppercase tracking-label text-deep-indigo">{row.reference}</p>
