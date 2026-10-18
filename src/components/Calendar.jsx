@@ -132,7 +132,7 @@ export function Calendar() {
               key={v}
               type="button"
               onClick={() => setView(v)}
-              className={`rounded-pill px-2 py-1 font-label text-[9px] uppercase tracking-label transition-colors ${
+              className={`rounded-pill px-3 py-1.5 font-label text-[9px] uppercase tracking-label transition-colors ${
                 view === v ? 'bg-deep-indigo text-pure-white' : 'text-deep-indigo'
               }`}
             >
@@ -185,7 +185,7 @@ export function Calendar() {
 
       {view === 'month' && (
         <>
-          <div className="mt-3 grid grid-cols-7">
+          <div className="mt-8 grid grid-cols-7">
             {WEEKDAY_LABELS.map((w, i) => (
               <span key={i} className="text-center font-label text-[10px] uppercase tracking-label text-black/40">
                 {w}
@@ -203,7 +203,7 @@ export function Calendar() {
                 <Link
                   key={key}
                   to={`/calendar/${key}`}
-                  className={`flex aspect-square flex-col items-center justify-center gap-0.5 rounded-card px-0.5 ${
+                  className={`flex min-h-[64px] flex-col items-center gap-0.5 rounded-card px-0.5 pt-1.5 ${
                     isToday ? 'bg-deep-indigo text-pure-white' : inMonth ? 'text-black/80' : 'text-black/25'
                   }`}
                 >
@@ -217,22 +217,29 @@ export function Calendar() {
                           style={{ backgroundColor: isToday ? '#ffffff' : c.hex }}
                         />
                       ))}
-                      {dayEvts.length > 1 && (
-                        <span
-                          className={`font-label text-[7px] leading-none ${isToday ? 'text-pure-white/70' : 'text-black/40'}`}
-                        >
-                          {dayEvts.length}
-                        </span>
-                      )}
                     </span>
                   )}
                   {dayEvts.length > 0 && (
-                    <span
-                      className={`w-full truncate text-center font-label text-[6px] leading-none ${
-                        isToday ? 'text-pure-white/80' : 'text-black/45'
-                      }`}
-                    >
-                      {dayEvts[0].title}
+                    <span className="flex w-full flex-col items-stretch gap-px">
+                      {dayEvts.slice(0, 2).map((e) => (
+                        <span
+                          key={e.id}
+                          className={`truncate text-center font-label text-[6px] leading-tight ${
+                            isToday ? 'text-pure-white/80' : 'text-black/45'
+                          }`}
+                        >
+                          {e.title}
+                        </span>
+                      ))}
+                      {dayEvts.length > 2 && (
+                        <span
+                          className={`text-center font-label text-[6px] leading-tight ${
+                            isToday ? 'text-pure-white/70' : 'text-black/35'
+                          }`}
+                        >
+                          +{dayEvts.length - 2}
+                        </span>
+                      )}
                     </span>
                   )}
                 </Link>
@@ -243,7 +250,7 @@ export function Calendar() {
       )}
 
       {view === 'week' && (
-        <div className="mt-3 grid grid-cols-7 gap-1">
+        <div className="mt-8 grid grid-cols-7 gap-1">
           {weekRow.map((date) => {
             const key = dateKey(date)
             const isToday = key === today
@@ -292,7 +299,7 @@ export function Calendar() {
       )}
 
       {view === 'day' && (
-        <div className="mt-4">
+        <div className="mt-8">
           <div className="flex flex-col gap-2">
             {dayEvents.length === 0 && (
               <p className="font-body text-sm text-black/50">Nothing planned for this day.</p>

@@ -6,9 +6,17 @@ import { listCalendarEvents, listEntries, listHighlights, listThemes } from '../
 import { formatShortRange } from '../lib/calendarUtils'
 import { matchesSearch, typeConfig } from '../lib/library'
 
-function SearchIcon() {
+function SearchIcon({ className = '' }) {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      className={className}
+    >
       <circle cx="11" cy="11" r="7" />
       <path d="m20 20-3.5-3.5" strokeLinecap="round" />
     </svg>
@@ -96,16 +104,10 @@ export function Search() {
           autoFocus
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search journal, themes, encounters, verses, the Bible…"
+          placeholder="Search scripture, themes, prayers, notes…"
           className="w-full rounded-card border border-black/10 bg-pure-white py-3 pl-10 pr-4 font-body text-sm focus:outline-none"
         />
       </div>
-
-      {!q && (
-        <p className="mt-8 font-body text-sm text-black/50">
-          Search across your journal, themes, encounters, saved verses and the Bible.
-        </p>
-      )}
 
       {q && !loaded && <p className="mt-8 font-body text-sm text-black/50">Loading…</p>}
 
