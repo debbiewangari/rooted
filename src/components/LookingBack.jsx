@@ -172,7 +172,7 @@ export function LookingBack() {
   const Icon = item.isEncounter ? CalendarIcon : TYPE_ICONS[item.entryType || 'reflection']
 
   return (
-    <section className="relative z-10 mt-8 px-6 pb-2">
+    <section className="relative z-10 mt-[72px] px-6 pb-2">
       <h2 className="font-display text-xl font-semibold text-ink-black">Looking Back</h2>
 
       <div className="relative mt-4 rounded-card border border-black/8 bg-pure-white px-5 py-5 shadow-xl-2">
