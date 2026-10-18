@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Logo } from '../components/Logo'
-import { FilledButton } from '../components/Button'
+import { FilledButton, OutlinedButton } from '../components/Button'
+import { GoogleIcon } from '../components/GoogleIcon'
 import { supabase, supabaseConfigured } from '../lib/supabase'
 
 export function Login() {
@@ -9,6 +10,22 @@ export function Login() {
   const [password, setPassword] = useState('')
   const [status, setStatus] = useState('idle') // idle | loading | error | check-email
   const [error, setError] = useState('')
+  const [googleLoading, setGoogleLoading] = useState(false)
+
+  async function handleGoogleSignIn() {
+    setGoogleLoading(true)
+    const { error: oauthError } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin },
+    })
+    if (oauthError) {
+      setError(oauthError.message)
+      setStatus('error')
+      setGoogleLoading(false)
+    }
+    // On success the browser navigates away to Google, so there's nothing
+    // more to do here — it lands back on this app already signed in.
+  }
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -115,6 +132,22 @@ export function Login() {
             {status === 'loading' ? 'Please wait…' : mode === 'sign-in' ? 'Sign in' : 'Sign up'}
           </FilledButton>
         </form>
+
+        <div className="mt-5 flex items-center gap-3">
+          <div className="h-px flex-1 bg-black/10" />
+          <span className="font-label text-[10px] uppercase tracking-label text-black/30">or</span>
+          <div className="h-px flex-1 bg-black/10" />
+        </div>
+
+        <OutlinedButton
+          type="button"
+          onClick={handleGoogleSignIn}
+          disabled={googleLoading}
+          className="mt-5 w-full"
+        >
+          <GoogleIcon />
+          {googleLoading ? 'Redirecting…' : 'Continue with Google'}
+        </OutlinedButton>
 
         <button
           type="button"

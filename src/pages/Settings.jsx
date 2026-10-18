@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { FilledButton, OutlinedButton } from '../components/Button'
+import { GoogleIcon } from '../components/GoogleIcon'
 import { exportAllData, getProfile, importAllData, removeHeroImage, setHeroImage } from '../lib/db'
 import { resizeImage } from '../lib/image'
 import * as legacyDb from '../lib/legacyDb'
@@ -18,6 +19,25 @@ export function Settings() {
   const [heroImageUrl, setHeroImageUrl] = useState(null)
   const [heroBusy, setHeroBusy] = useState(false)
   const [heroError, setHeroError] = useState('')
+  const [googleBusy, setGoogleBusy] = useState(false)
+  const [googleError, setGoogleError] = useState('')
+
+  const hasGoogle = Boolean(user?.identities?.some((i) => i.provider === 'google'))
+
+  async function handleConnectGoogle() {
+    setGoogleError('')
+    setGoogleBusy(true)
+    const { error } = await supabase.auth.linkIdentity({
+      provider: 'google',
+      options: { redirectTo: `${window.location.origin}/settings` },
+    })
+    if (error) {
+      setGoogleError(error.message)
+      setGoogleBusy(false)
+    }
+    // On success the browser navigates to Google and back — nothing more
+    // to do here.
+  }
 
   useEffect(() => {
     getProfile()
@@ -123,6 +143,28 @@ export function Settings() {
           </button>
         </div>
       )}
+
+      {user && (
+        <div className="mt-3 flex items-center justify-between rounded-card border border-black/10 bg-pure-white px-4 py-3">
+          <div className="flex items-center gap-2.5">
+            <GoogleIcon />
+            <p className="font-body text-sm text-ink-black">
+              {hasGoogle ? 'Google connected' : 'Sign in with Google'}
+            </p>
+          </div>
+          {!hasGoogle && (
+            <button
+              type="button"
+              onClick={handleConnectGoogle}
+              disabled={googleBusy}
+              className="shrink-0 font-label text-xs uppercase tracking-label text-deep-indigo disabled:opacity-50"
+            >
+              {googleBusy ? 'Redirecting…' : 'Connect'}
+            </button>
+          )}
+        </div>
+      )}
+      {googleError && <p className="mt-2 font-body text-sm text-burnt-orange">{googleError}</p>}
 
       <div className="mt-6">
         <label className="font-label text-[11px] uppercase tracking-label text-black/40">Display name</label>
