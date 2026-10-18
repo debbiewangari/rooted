@@ -208,40 +208,43 @@ export function Calendar() {
                   }`}
                 >
                   <span className="font-body text-xs">{date.getDate()}</span>
-                  {cats.length > 0 && (
-                    <span className="flex items-center gap-0.5">
-                      {cats.slice(0, 3).map((c) => (
-                        <span
-                          key={c.id}
-                          className="h-1 w-1 rounded-full"
-                          style={{ backgroundColor: isToday ? '#ffffff' : c.hex }}
-                        />
-                      ))}
-                    </span>
-                  )}
-                  {dayEvts.length > 0 && (
-                    <span className="flex w-full flex-col items-stretch gap-px">
-                      {dayEvts.slice(0, 2).map((e) => (
-                        <span
-                          key={e.id}
-                          className={`truncate text-center font-label text-[6px] leading-tight ${
-                            isToday ? 'text-pure-white/80' : 'text-black/45'
-                          }`}
-                        >
-                          {e.title}
-                        </span>
-                      ))}
-                      {dayEvts.length > 2 && (
-                        <span
-                          className={`text-center font-label text-[6px] leading-tight ${
-                            isToday ? 'text-pure-white/70' : 'text-black/35'
-                          }`}
-                        >
-                          +{dayEvts.length - 2}
-                        </span>
-                      )}
-                    </span>
-                  )}
+                  {/* Fixed-height even when empty, so a week with no events
+                      lines up with one that has them instead of leaving a
+                      taller-looking gap above the next row. */}
+                  <span className="flex h-1 items-center gap-0.5">
+                    {cats.slice(0, 3).map((c) => (
+                      <span
+                        key={c.id}
+                        className="h-1 w-1 rounded-full"
+                        style={{ backgroundColor: isToday ? '#ffffff' : c.hex }}
+                      />
+                    ))}
+                  </span>
+                  <span className="flex h-4 w-full flex-col items-stretch gap-px">
+                    {dayEvts.length > 0 && (
+                      <>
+                        {dayEvts.slice(0, 2).map((e) => (
+                          <span
+                            key={e.id}
+                            className={`truncate text-center font-label text-[6px] leading-tight ${
+                              isToday ? 'text-pure-white/80' : 'text-black/45'
+                            }`}
+                          >
+                            {e.title}
+                          </span>
+                        ))}
+                        {dayEvts.length > 2 && (
+                          <span
+                            className={`text-center font-label text-[6px] leading-tight ${
+                              isToday ? 'text-pure-white/70' : 'text-black/35'
+                            }`}
+                          >
+                            +{dayEvts.length - 2}
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </span>
                 </Link>
               )
             })}
