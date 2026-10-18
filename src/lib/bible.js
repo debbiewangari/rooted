@@ -29,6 +29,18 @@ export function verseKey(v) {
   return `${v.book_id}:${v.chapter}:${v.verse}`
 }
 
+// A highlight's stored `color` is either one of the preset ids above or a
+// literal "#rrggbb" from the custom color swatch — this resolves either
+// form to the hex that's actually painted on screen. Returns null for
+// anything else (e.g. the 'saved' bookmark marker, which intentionally
+// has no color wash).
+export function resolveHighlightHex(colorId) {
+  if (!colorId) return null
+  const preset = HIGHLIGHT_COLORS.find((c) => c.id === colorId)
+  if (preset) return preset.hex
+  return colorId.startsWith('#') ? colorId : null
+}
+
 function cacheKey(reference, translation) {
   return `${translation}:${reference}`
 }

@@ -31,9 +31,9 @@ function ChevronDown() {
 
 const FONT_OPTIONS = [
   { label: 'Default', value: '"Plus Jakarta Sans", sans-serif' },
-  { label: 'Serif', value: 'Georgia, serif' },
-  { label: 'Mono', value: '"Courier New", monospace' },
-  { label: 'Cursive', value: 'cursive' },
+  { label: 'Serif', value: '"Lora", Georgia, serif' },
+  { label: 'Mono', value: '"Space Mono", "Courier New", monospace' },
+  { label: 'Handwritten', value: '"Caveat", cursive' },
 ]
 
 const SIZE_OPTIONS = [

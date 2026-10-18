@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { HIGHLIGHT_COLORS, verseKey } from '../lib/bible'
+import { HIGHLIGHT_COLORS, resolveHighlightHex, verseKey } from '../lib/bible'
 import { listHighlights, removeHighlight, setHighlight } from '../lib/db'
 
 function CopyIcon() {
@@ -40,6 +40,7 @@ export function VerseList({ verses, fallbackText, className = '' }) {
   const [mode, setMode] = useState('menu') // 'menu' | 'colors'
   const [copied, setCopied] = useState(false)
   const containerRef = useRef(null)
+  const colorInputRef = useRef(null)
   // Tapping a toolbar button is itself a mousedown outside the selected
   // text, which some browsers collapse the native selection for before the
   // click ever fires — wiping our React selection state (and the toolbar
@@ -47,6 +48,20 @@ export function VerseList({ verses, fallbackText, className = '' }) {
   // selectionchange handler ignores that collapse; every action handler
   // clears this flag once it's done deciding what to do with the selection.
   const toolbarInteractingRef = useRef(false)
+
+  // Canceling the native color picker without choosing fires no onChange,
+  // which would otherwise leave toolbarInteractingRef stuck true (every
+  // other toolbar action clears it synchronously via clearSelection/
+  // applyColor; this is the one that can be dismissed without either).
+  useEffect(() => {
+    const input = colorInputRef.current
+    if (!input) return
+    function handleCancel() {
+      toolbarInteractingRef.current = false
+    }
+    input.addEventListener('cancel', handleCancel)
+    return () => input.removeEventListener('cancel', handleCancel)
+  }, [mode])
 
   useEffect(() => {
     listHighlights().then((rows) => {
@@ -125,6 +140,9 @@ export function VerseList({ verses, fallbackText, className = '' }) {
     applyColor('saved')
   }
 
+  // colorId is either a preset id (from the swatch buttons) or a literal
+  // "#rrggbb" (from the custom color input) — setHighlight stores whichever
+  // was passed, resolveHighlightHex knows how to read either back.
   async function applyColor(colorId) {
     if (!selection) return
     for (const v of selection.verses) {
@@ -167,13 +185,13 @@ export function VerseList({ verses, fallbackText, className = '' }) {
         {verses.map((v) => {
           const key = verseKey(v)
           const colorId = highlights[key]
-          const color = HIGHLIGHT_COLORS.find((c) => c.id === colorId)
+          const hex = resolveHighlightHex(colorId)
           return (
             <p
               key={v.verse}
               data-verse-key={key}
               className="rounded px-1 py-0.5 font-body text-base leading-relaxed text-black/80"
-              style={color ? { backgroundColor: `${color.hex}4d` } : undefined}
+              style={hex ? { backgroundColor: `${hex}4d` } : undefined}
             >
               <span className="mr-1 select-none font-label text-xs text-black/40">{v.verse}</span>
               {v.text.trim()}
@@ -232,6 +250,18 @@ export function VerseList({ verses, fallbackText, className = '' }) {
                   aria-label={`Highlight ${c.id}`}
                 />
               ))}
+              <button
+                type="button"
+                onClick={() => colorInputRef.current?.click()}
+                aria-label="Custom highlight color"
+                className="h-6 w-6 shrink-0 rounded-full border border-pure-white/40 bg-[conic-gradient(red,orange,yellow,green,blue,violet,red)]"
+              />
+              <input
+                ref={colorInputRef}
+                type="color"
+                onChange={(e) => applyColor(e.target.value)}
+                className="sr-only"
+              />
               {hasExistingHighlight && (
                 <button
                   type="button"

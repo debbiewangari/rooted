@@ -21,7 +21,7 @@ export function UpcomingEvents({ limit = 3 }) {
   return (
     <section className="relative z-10 mt-8 px-6">
       <div className="flex items-baseline justify-between">
-        <h2 className="font-display text-xl font-semibold text-ink-black">My Experiences</h2>
+        <h2 className="font-display text-xl font-semibold text-ink-black">My Encounters</h2>
         <Link to="/events" className="font-label text-xs uppercase tracking-label text-deep-indigo">
           View all
         </Link>
