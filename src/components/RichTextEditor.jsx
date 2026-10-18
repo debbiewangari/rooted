@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { HIGHLIGHT_COLORS } from '../lib/bible'
 import { uploadNoteMedia } from '../lib/db'
 
 function ImageIcon() {
@@ -11,19 +12,63 @@ function ImageIcon() {
   )
 }
 
-// Lightweight contentEditable editor (bold / italic / bullets / inline
-// media) — no new dependency pulled in just for basic formatting. Content
-// is stored as the HTML the browser produces; this surface is local-only
-// and single-user, so that tradeoff is fine here.
+function HighlightIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path d="m9 15 6-6 3 3-6 6H9z" strokeLinejoin="round" />
+      <path d="m5 19 2-4 2 2z" />
+    </svg>
+  )
+}
+
+function ChevronDown() {
+  return (
+    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+      <path d="m6 9 6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+const FONT_OPTIONS = [
+  { label: 'Default', value: '"Plus Jakarta Sans", sans-serif' },
+  { label: 'Serif', value: 'Georgia, serif' },
+  { label: 'Mono', value: '"Courier New", monospace' },
+  { label: 'Cursive', value: 'cursive' },
+]
+
+const SIZE_OPTIONS = [
+  { label: 'Small', value: '2' },
+  { label: 'Normal', value: '3' },
+  { label: 'Large', value: '5' },
+  { label: 'X-Large', value: '7' },
+]
+
+function Divider() {
+  return <span className="mx-0.5 h-5 w-px shrink-0 self-center bg-black/10" />
+}
+
+// Lightweight contentEditable editor (bold / italic / underline / bullets /
+// numbered lists / font / size / highlight / inline media) — no new
+// dependency pulled in just for formatting. Content is stored as the HTML
+// the browser produces; this surface is local-only and single-user, so
+// that tradeoff is fine here.
 export function RichTextEditor({ value, onChange, onBlur, placeholder }) {
   const ref = useRef(null)
   const fileInputRef = useRef(null)
+  const colorInputRef = useRef(null)
   const [uploading, setUploading] = useState(false)
-  // Opening the native file picker blurs the editable div the moment the
-  // dialog appears — without this, that blur alone (before the user has
-  // even picked a file) would fire `onBlur` and, in callers that use it to
-  // leave edit mode, unmount this editor out from under the upload.
+  const [openMenu, setOpenMenu] = useState(null) // 'font' | 'size' | 'highlight' | null
+  // Opening the native file picker (or a native <input type="color">) blurs
+  // the editable div the moment the dialog appears — without this, that
+  // blur alone (before the user has picked anything) would fire `onBlur`
+  // and, in callers that use it to leave edit mode, unmount this editor out
+  // from under the picker.
   const suppressBlurRef = useRef(false)
+  // The custom-color swatch needs real focus to open the native color
+  // picker, which collapses the contentEditable's text selection the
+  // moment focus moves — so the selection is captured just before that
+  // happens and restored right before applying the chosen color.
+  const savedRangeRef = useRef(null)
   // Starts as a sentinel (never equal to a real value) rather than `value`
   // itself, so the sync effect below always writes the initial content into
   // the DOM on mount — this component can now mount pre-populated (e.g.
@@ -51,9 +96,9 @@ export function RichTextEditor({ value, onChange, onBlur, placeholder }) {
     return () => input.removeEventListener('cancel', handleCancel)
   }, [])
 
-  function exec(command) {
+  function exec(command, value) {
     ref.current?.focus()
-    document.execCommand(command)
+    document.execCommand(command, false, value)
     handleInput()
   }
 
@@ -73,6 +118,10 @@ export function RichTextEditor({ value, onChange, onBlur, placeholder }) {
     const sel = window.getSelection()
     sel.removeAllRanges()
     sel.addRange(range)
+  }
+
+  function toggleMenu(name) {
+    setOpenMenu((m) => (m === name ? null : name))
   }
 
   function openMediaPicker() {
@@ -104,6 +153,28 @@ export function RichTextEditor({ value, onChange, onBlur, placeholder }) {
     }
   }
 
+  function openCustomColor() {
+    const sel = window.getSelection()
+    if (sel && sel.rangeCount > 0 && ref.current?.contains(sel.anchorNode)) {
+      savedRangeRef.current = sel.getRangeAt(0).cloneRange()
+    }
+    suppressBlurRef.current = true
+    colorInputRef.current?.click()
+  }
+
+  function handleCustomColor(e) {
+    const value = e.target.value
+    suppressBlurRef.current = false
+    const range = savedRangeRef.current
+    if (range) {
+      const sel = window.getSelection()
+      sel.removeAllRanges()
+      sel.addRange(range)
+    }
+    exec('hiliteColor', value)
+    setOpenMenu(null)
+  }
+
   function handleEditableBlur(e) {
     if (suppressBlurRef.current) return
     onBlur?.(e)
@@ -111,7 +182,76 @@ export function RichTextEditor({ value, onChange, onBlur, placeholder }) {
 
   return (
     <div className="rounded-card border border-black/10 bg-pure-white">
-      <div className="flex gap-1 border-b border-black/10 px-2 py-1.5">
+      <div className="flex flex-wrap items-center gap-1 border-b border-black/10 px-2 py-1.5">
+        <div className="relative">
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => toggleMenu('font')}
+            className="flex h-7 items-center gap-0.5 rounded px-1.5 font-label text-[9px] uppercase tracking-label text-deep-indigo hover:bg-cream-paper"
+            aria-label="Font"
+          >
+            Font <ChevronDown />
+          </button>
+          {openMenu === 'font' && (
+            <>
+              <div className="fixed inset-0 z-30" onClick={() => setOpenMenu(null)} />
+              <div className="absolute left-0 top-full z-40 mt-1 w-36 overflow-hidden rounded-card border border-black/8 bg-pure-white shadow-xl-2">
+                {FONT_OPTIONS.map((f) => (
+                  <button
+                    key={f.value}
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      exec('fontName', f.value)
+                      setOpenMenu(null)
+                    }}
+                    style={{ fontFamily: f.value }}
+                    className="block w-full px-3 py-2 text-left text-sm text-ink-black hover:bg-cream-paper"
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="relative">
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => toggleMenu('size')}
+            className="flex h-7 items-center gap-0.5 rounded px-1.5 font-label text-[9px] uppercase tracking-label text-deep-indigo hover:bg-cream-paper"
+            aria-label="Font size"
+          >
+            Size <ChevronDown />
+          </button>
+          {openMenu === 'size' && (
+            <>
+              <div className="fixed inset-0 z-30" onClick={() => setOpenMenu(null)} />
+              <div className="absolute left-0 top-full z-40 mt-1 w-32 overflow-hidden rounded-card border border-black/8 bg-pure-white shadow-xl-2">
+                {SIZE_OPTIONS.map((s) => (
+                  <button
+                    key={s.value}
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      exec('fontSize', s.value)
+                      setOpenMenu(null)
+                    }}
+                    className="block w-full px-3 py-2 text-left font-body text-sm text-ink-black hover:bg-cream-paper"
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
+        <Divider />
+
         <button
           type="button"
           onMouseDown={(e) => e.preventDefault()}
@@ -133,12 +273,100 @@ export function RichTextEditor({ value, onChange, onBlur, placeholder }) {
         <button
           type="button"
           onMouseDown={(e) => e.preventDefault()}
+          onClick={() => exec('underline')}
+          className="flex h-7 w-7 items-center justify-center rounded font-display text-sm text-deep-indigo underline hover:bg-cream-paper"
+          aria-label="Underline"
+        >
+          U
+        </button>
+
+        <Divider />
+
+        <button
+          type="button"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => exec('insertUnorderedList')}
           className="flex h-7 w-7 items-center justify-center rounded font-label text-sm text-deep-indigo hover:bg-cream-paper"
           aria-label="Bullet list"
         >
           •≡
         </button>
+        <button
+          type="button"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => exec('insertOrderedList')}
+          className="flex h-7 w-7 items-center justify-center rounded font-label text-[10px] text-deep-indigo hover:bg-cream-paper"
+          aria-label="Numbered list"
+        >
+          1≡
+        </button>
+
+        <Divider />
+
+        <div className="relative">
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => toggleMenu('highlight')}
+            className="flex h-7 items-center gap-0.5 rounded px-1 text-deep-indigo hover:bg-cream-paper"
+            aria-label="Highlight"
+          >
+            <HighlightIcon />
+            <ChevronDown />
+          </button>
+          {openMenu === 'highlight' && (
+            <>
+              <div className="fixed inset-0 z-30" onClick={() => setOpenMenu(null)} />
+              <div className="absolute left-0 top-full z-40 mt-1 w-44 overflow-hidden rounded-card border border-black/8 bg-pure-white p-3 shadow-xl-2">
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      exec('hiliteColor', 'transparent')
+                      setOpenMenu(null)
+                    }}
+                    aria-label="Clear highlight"
+                    className="flex h-7 w-7 items-center justify-center rounded-pill border border-black/15 bg-pure-white font-label text-[10px] text-black/40"
+                  >
+                    ✕
+                  </button>
+                  {HIGHLIGHT_COLORS.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        exec('hiliteColor', c.hex)
+                        setOpenMenu(null)
+                      }}
+                      aria-label={c.id}
+                      className="h-7 w-7 rounded-pill border border-black/10"
+                      style={{ backgroundColor: c.hex }}
+                    />
+                  ))}
+                  <button
+                    type="button"
+                    onMouseDown={openCustomColor}
+                    aria-label="Custom highlight color"
+                    className="flex h-7 w-7 items-center justify-center rounded-pill border border-black/15 bg-[conic-gradient(red,orange,yellow,green,blue,violet,red)] font-label text-[8px] text-pure-white"
+                  >
+                    +
+                  </button>
+                  <input
+                    ref={colorInputRef}
+                    type="color"
+                    onChange={handleCustomColor}
+                    className="sr-only"
+                  />
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        <Divider />
+
         <button
           type="button"
           onMouseDown={(e) => e.preventDefault()}
