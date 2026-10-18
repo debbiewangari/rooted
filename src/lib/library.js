@@ -20,12 +20,24 @@ export const SECTION_TYPES = [
   { id: 'scripture', label: 'Scriptures', kind: 'scripture' },
   { id: 'story', label: 'Bible Story', kind: 'richtext', placeholder: 'Tell the story…' },
   { id: 'declaration', label: 'Prophetic Declarations', kind: 'richtext', placeholder: 'Declare the word…' },
-  { id: 'prayer', label: 'Prayer', kind: 'prayer' },
+  { id: 'prayer', label: 'Prayer', kind: 'richtext', placeholder: "Write what you're praying through…" },
   { id: 'testimony', label: 'Testimony', kind: 'richtext', placeholder: 'Share what God has done…' },
 ]
 
 export function sectionConfig(typeId) {
   return SECTION_TYPES.find((s) => s.id === typeId)
+}
+
+// Prayer sections used to be a fixed point-by-point list (add-only, no
+// editing a saved point) — now they're an open field like any other
+// richtext section. Entries saved under the old shape still have
+// `data.items` instead of `data.html`; this renders them as a bullet list
+// so that content keeps showing until the entry is next edited, at which
+// point it's saved back as html like everything else.
+export function legacyItemsToHtml(items) {
+  if (!items?.length) return ''
+  const escape = (s) => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  return `<ul>${items.map((i) => `<li>${escape(i.text)}</li>`).join('')}</ul>`
 }
 
 export function typeConfig(typeId) {
@@ -62,7 +74,7 @@ export function entryText(entry) {
     return entry.sections
       .map((s) => {
         if (s.type === 'scripture') return (s.data.verses || []).map((v) => v.reference).join(', ')
-        if (s.type === 'prayer') return (s.data.items || []).map((i) => i.text).join(' ')
+        if (s.data?.items) return s.data.items.map((i) => i.text).join(' ') // legacy prayer shape
         return stripHtml(s.data?.html)
       })
       .join(' ')

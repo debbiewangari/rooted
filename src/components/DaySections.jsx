@@ -42,28 +42,22 @@ function SortableSection({ section, typeDef, onUpdateData, onRemove }) {
     <div ref={setNodeRef} style={style}>
       <Card>
         <div className="flex items-start justify-between gap-2">
-          {typeDef.kind === 'scripture' ? (
-            <p className="font-label text-[11px] uppercase tracking-label text-black/40">{typeDef.name}</p>
-          ) : (
-            <button
-              type="button"
-              // Without this, clicking the label while the field below is
-              // focused blurs it first (closing edit mode), then this
-              // button's own click re-opens it — net effect, tapping to
-              // close does nothing. Blocking the mousedown's default stops
-              // the blur so only one toggle happens.
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => setEditing((e) => !e)}
-              className="font-label text-[11px] uppercase tracking-label text-black/40"
-            >
-              {typeDef.name}
-            </button>
-          )}
+          <button
+            type="button"
+            // Without this, clicking the label while the field below is
+            // focused blurs it first (closing edit mode), then this
+            // button's own click re-opens it — net effect, tapping to
+            // close does nothing. Blocking the mousedown's default stops
+            // the blur so only one toggle happens.
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => setEditing((e) => !e)}
+            className="font-label text-[11px] uppercase tracking-label text-black/40"
+          >
+            {typeDef.name}
+          </button>
           {/* Remove/reorder are editing actions, not something to see while
-              just reading this card — scripture has no single read/edit
-              moment (browsing a list, tapping a verse, is itself "reading"),
-              so its controls stay put. */}
-          {(typeDef.kind === 'scripture' || editing) && (
+              just reading this card. */}
+          {editing && (
             <div className="flex shrink-0 items-center gap-3">
               <button
                 type="button"
@@ -97,19 +91,35 @@ function SortableSection({ section, typeDef, onUpdateData, onRemove }) {
             </button>
           ))}
 
-        {typeDef.kind === 'scripture' && (
-          <div className="mt-2">
-            <EventVerseList
-              verses={section.data?.verses || []}
-              onAdd={(reference) =>
-                onUpdateData({ verses: [...(section.data?.verses || []), { id: crypto.randomUUID(), reference }] })
-              }
-              onRemove={(verseId) =>
-                onUpdateData({ verses: (section.data?.verses || []).filter((v) => v.id !== verseId) })
-              }
-            />
-          </div>
-        )}
+        {typeDef.kind === 'scripture' &&
+          (editing ? (
+            <div className="mt-2">
+              <EventVerseList
+                verses={section.data?.verses || []}
+                onAdd={(reference) =>
+                  onUpdateData({ verses: [...(section.data?.verses || []), { id: crypto.randomUUID(), reference }] })
+                }
+                onRemove={(verseId) =>
+                  onUpdateData({ verses: (section.data?.verses || []).filter((v) => v.id !== verseId) })
+                }
+              />
+            </div>
+          ) : (
+            <button type="button" onClick={() => setEditing(true)} className="mt-2 block w-full text-left">
+              {(section.data?.verses || []).length > 0 ? (
+                <ul className="flex flex-col gap-2">
+                  {section.data.verses.map((v) => (
+                    <li key={v.id} className="flex items-start gap-2">
+                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-deep-indigo" />
+                      <span className="font-body text-sm text-black/80">{v.reference}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <span className="font-body text-sm text-black/30">Add verses…</span>
+              )}
+            </button>
+          ))}
 
         {typeDef.kind === 'richtext' &&
           (editing ? (

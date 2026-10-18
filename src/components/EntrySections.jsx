@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { EventVerseList } from './EventVerseList'
 import { RichTextEditor } from './RichTextEditor'
-import { SECTION_TYPES, sectionConfig } from '../lib/library'
+import { SECTION_TYPES, legacyItemsToHtml, sectionConfig } from '../lib/library'
 
 function makeId() {
   return crypto.randomUUID()
@@ -9,7 +9,6 @@ function makeId() {
 
 const DEFAULT_DATA = {
   scripture: { verses: [] },
-  prayer: { items: [] },
 }
 
 // A CMS-style block list: a Library entry is built from whichever sections
@@ -66,20 +65,10 @@ export function EntrySections({ sections, onChange }) {
               </div>
             )}
 
-            {cfg?.kind === 'prayer' && (
-              <PrayerItemsEditor
-                items={section.data.items}
-                onAdd={(text) => updateSection(section.id, { items: [...section.data.items, { id: makeId(), text }] })}
-                onRemove={(itemId) =>
-                  updateSection(section.id, { items: section.data.items.filter((i) => i.id !== itemId) })
-                }
-              />
-            )}
-
             {cfg?.kind === 'richtext' && (
               <div className="mt-1">
                 <RichTextEditor
-                  value={section.data.html}
+                  value={section.data.html ?? (section.data.items ? legacyItemsToHtml(section.data.items) : '')}
                   onChange={(html) => updateSection(section.id, { html })}
                   placeholder={cfg.placeholder}
                 />
@@ -127,59 +116,6 @@ export function EntrySections({ sections, onChange }) {
           + Add section
         </button>
       )}
-    </div>
-  )
-}
-
-function PrayerItemsEditor({ items, onAdd, onRemove }) {
-  const [text, setText] = useState('')
-
-  function handleAdd() {
-    if (!text.trim()) return
-    onAdd(text.trim())
-    setText('')
-  }
-
-  return (
-    <div className="mt-1">
-      <ul className="flex flex-col gap-2">
-        {items.map((item) => (
-          <li key={item.id} className="flex items-start gap-2">
-            <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-deep-indigo" />
-            <span className="flex-1 font-body text-sm text-black/80">{item.text}</span>
-            <button
-              type="button"
-              onClick={() => onRemove(item.id)}
-              className="font-label text-[10px] text-black/30"
-              aria-label="Remove point"
-            >
-              ✕
-            </button>
-          </li>
-        ))}
-        {items.length === 0 && <p className="font-body text-sm text-black/40">No points yet.</p>}
-      </ul>
-      <div className="mt-2 flex gap-2">
-        <input
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault()
-              handleAdd()
-            }
-          }}
-          placeholder="Add a point…"
-          className="flex-1 rounded-card border border-black/10 bg-cream-paper px-3 py-2 font-body text-sm focus:outline-none"
-        />
-        <button
-          type="button"
-          onClick={handleAdd}
-          className="font-label text-[10px] uppercase tracking-label text-deep-indigo"
-        >
-          Add
-        </button>
-      </div>
     </div>
   )
 }

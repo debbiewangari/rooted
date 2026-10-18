@@ -6,7 +6,7 @@ import { FilledButton, OutlinedButton } from '../components/Button'
 import { EntrySections } from '../components/EntrySections'
 import { EventVerseList } from '../components/EventVerseList'
 import { DEFAULT_TRANSLATION, fetchPassage } from '../lib/bible'
-import { LIBRARY_TYPES, sectionConfig, typeConfig } from '../lib/library'
+import { LIBRARY_TYPES, legacyItemsToHtml, sectionConfig, typeConfig } from '../lib/library'
 import { createEntry, createTag, deleteEntry, getEntry, listTags, updateEntry } from '../lib/db'
 
 const TRANSLATION_KEY = 'rooted:translation'
@@ -221,29 +221,18 @@ export function JournalEntry() {
                   </div>
                 )}
 
-                {sCfg?.kind === 'prayer' && (
-                  <ul className="mt-2 flex flex-col gap-2">
-                    {(section.data.items || []).length === 0 && (
-                      <p className="font-body text-sm text-black/40">No points added.</p>
-                    )}
-                    {(section.data.items || []).map((item) => (
-                      <li key={item.id} className="flex items-start gap-2">
-                        <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-deep-indigo" />
-                        <span className="font-body text-sm text-black/80">{item.text}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-
                 {sCfg?.kind === 'richtext' &&
-                  (section.data?.html ? (
-                    <div
-                      className="rich-text-editor mt-2 font-body text-sm text-black/80"
-                      dangerouslySetInnerHTML={{ __html: section.data.html }}
-                    />
-                  ) : (
-                    <p className="mt-2 font-body text-sm text-black/40">Nothing written yet.</p>
-                  ))}
+                  (() => {
+                    const html = section.data?.html ?? (section.data?.items ? legacyItemsToHtml(section.data.items) : '')
+                    return html ? (
+                      <div
+                        className="rich-text-editor mt-2 font-body text-sm text-black/80"
+                        dangerouslySetInnerHTML={{ __html: html }}
+                      />
+                    ) : (
+                      <p className="mt-2 font-body text-sm text-black/40">Nothing written yet.</p>
+                    )
+                  })()}
               </Card>
             )
           })}

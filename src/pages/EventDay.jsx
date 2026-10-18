@@ -151,7 +151,7 @@ export function EventDay() {
         <Link
           to={`/events/${id}`}
           className="absolute left-4 top-4 flex h-9 w-9 items-center justify-center rounded-pill bg-pure-white/90 font-display text-lg text-deep-indigo"
-          aria-label="Back to challenge"
+          aria-label="Back to event"
         >
           ←
         </Link>

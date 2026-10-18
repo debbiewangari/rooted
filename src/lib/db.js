@@ -42,6 +42,20 @@ async function removeCover(path) {
   await supabase.storage.from(COVERS_BUCKET).remove([path])
 }
 
+// Inline media (images/video) dropped into a rich-text note — stored in the
+// same owner-scoped `covers` bucket, just under its own folder, since the
+// existing storage policies already cover any path under the user's id.
+export async function uploadNoteMedia(file) {
+  const userId = await getUserId()
+  const ext = (file.name.split('.').pop() || 'bin').toLowerCase()
+  const path = `${userId}/notes/${makeId()}.${ext}`
+  const { error } = await supabase.storage
+    .from(COVERS_BUCKET)
+    .upload(path, file, { contentType: file.type || 'application/octet-stream' })
+  if (error) throw error
+  return publicCoverUrl(path)
+}
+
 // Journal / Library entries -------------------------------------------------
 function fromEntryRow(row) {
   return {
@@ -509,13 +523,44 @@ export async function createDaySectionType(name, kind = 'richtext') {
 
 // Standing prayer lists -------------------------------------------------
 function fromPrayerCardRow(row) {
-  return { id: row.id, eventId: row.event_id, title: row.title, notes: row.notes || '', createdAt: toMs(row.created_at) }
+  return {
+    id: row.id,
+    eventId: row.event_id,
+    title: row.title,
+    notes: row.notes || '',
+    position: row.position,
+    createdAt: toMs(row.created_at),
+  }
 }
 
 export async function listPrayerCards(eventId) {
-  const { data, error } = await supabase.from('prayer_cards').select('*').eq('event_id', eventId).order('created_at')
-  if (error) throw error
+  const { data, error } = await supabase
+    .from('prayer_cards')
+    .select('*')
+    .eq('event_id', eventId)
+    .order('position', { ascending: true, nullsFirst: false })
+    .order('created_at')
+  if (error) {
+    // Falls back to creation order on a database that hasn't had
+    // migration-6 (the `position` column) applied yet, rather than
+    // breaking prayer lists entirely until that migration is run.
+    if (error.code === '42703') {
+      const fallback = await supabase.from('prayer_cards').select('*').eq('event_id', eventId).order('created_at')
+      if (fallback.error) throw fallback.error
+      return fallback.data.map(fromPrayerCardRow)
+    }
+    throw error
+  }
   return data.map(fromPrayerCardRow)
+}
+
+// Persists a drag-reorder — position is just the card's index in the new
+// order, written one row at a time (lists are short, so this stays simple).
+export async function reorderPrayerCards(cardIds) {
+  for (let i = 0; i < cardIds.length; i++) {
+    const { error } = await supabase.from('prayer_cards').update({ position: i }).eq('id', cardIds[i])
+    if (error && error.code !== '42703') throw error
+  }
 }
 
 export async function createPrayerCard(eventId, title) {

@@ -41,5 +41,6 @@ export async function fetchDailyVerse() {
     reference: data.reference || reference,
     text: (data.text || '').trim(),
     translation: TRANSLATIONS.find((t) => t.id === translationId)?.name || translationId.toUpperCase(),
+    verses: data.verses || [],
   }
 }

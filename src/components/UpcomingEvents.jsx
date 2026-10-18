@@ -4,7 +4,7 @@ import { EventCard } from './EventCard'
 import { getEventProgress, todayKey } from '../lib/calendarUtils'
 import { listCalendarEvents } from '../lib/db'
 
-export function UpcomingEvents({ limit = 5 }) {
+export function UpcomingEvents({ limit = 3 }) {
   const [events, setEvents] = useState(null)
 
   useEffect(() => {

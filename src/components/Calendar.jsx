@@ -197,13 +197,13 @@ export function Calendar() {
               const key = dateKey(date)
               const inMonth = date.getMonth() === cursor.getMonth()
               const cats = categoriesForDay(key)
-              const count = eventsForDay(key).length
+              const dayEvts = eventsForDay(key)
               const isToday = key === today
               return (
                 <Link
                   key={key}
                   to={`/calendar/${key}`}
-                  className={`flex aspect-square flex-col items-center justify-center gap-0.5 rounded-card ${
+                  className={`flex aspect-square flex-col items-center justify-center gap-0.5 rounded-card px-0.5 ${
                     isToday ? 'bg-deep-indigo text-pure-white' : inMonth ? 'text-black/80' : 'text-black/25'
                   }`}
                 >
@@ -217,13 +217,22 @@ export function Calendar() {
                           style={{ backgroundColor: isToday ? '#ffffff' : c.hex }}
                         />
                       ))}
-                      {count > 1 && (
+                      {dayEvts.length > 1 && (
                         <span
                           className={`font-label text-[7px] leading-none ${isToday ? 'text-pure-white/70' : 'text-black/40'}`}
                         >
-                          {count}
+                          {dayEvts.length}
                         </span>
                       )}
+                    </span>
+                  )}
+                  {dayEvts.length > 0 && (
+                    <span
+                      className={`w-full truncate text-center font-label text-[6px] leading-none ${
+                        isToday ? 'text-pure-white/80' : 'text-black/45'
+                      }`}
+                    >
+                      {dayEvts[0].title}
                     </span>
                   )}
                 </Link>

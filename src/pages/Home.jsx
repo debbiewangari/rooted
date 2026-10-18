@@ -5,9 +5,9 @@ import { HamburgerMenu } from '../components/HamburgerMenu'
 import { Logo } from '../components/Logo'
 import { UpcomingEvents } from '../components/UpcomingEvents'
 import { fetchDailyVerse } from '../lib/dailyVerse'
+import { verseKey } from '../lib/bible'
 import { getGreeting, getName } from '../lib/profile'
-import { isVerseSaved, toggleSavedVerse } from '../lib/savedVerses'
-import { backfillThemesFromTags, getProfile, listThemes } from '../lib/db'
+import { backfillThemesFromTags, getProfile, listHighlights, listThemes, removeHighlight, setHighlight } from '../lib/db'
 
 const DEFAULT_HERO_IMAGE = '/hero-sunset.jpg'
 
@@ -37,6 +37,7 @@ export function Home() {
   const [verse, setVerse] = useState(null)
   const [verseError, setVerseError] = useState(false)
   const [verseSaved, setVerseSaved] = useState(false)
+  const [savingVerse, setSavingVerse] = useState(false)
   const [heroImageUrl, setHeroImageUrl] = useState(DEFAULT_HERO_IMAGE)
   const scrollRef = useRef(null)
 
@@ -49,9 +50,15 @@ export function Home() {
       .catch((err) => console.error('backfillThemesFromTags failed', err))
       .finally(() => listThemes().then(setThemes))
     fetchDailyVerse()
-      .then((v) => {
+      .then(async (v) => {
         setVerse(v)
-        setVerseSaved(isVerseSaved(v.reference))
+        try {
+          const rows = await listHighlights()
+          const saved = new Set(rows.filter((r) => r.color === 'saved').map((r) => r.id))
+          setVerseSaved((v.verses || []).length > 0 && v.verses.every((vv) => saved.has(verseKey(vv))))
+        } catch {
+          // Bookmark state just won't be pre-checked.
+        }
       })
       .catch(() => setVerseError(true))
     getProfile()
@@ -70,9 +77,29 @@ export function Home() {
     setActiveTheme(Math.min(Math.max(index, 0), homeThemes.length - 1))
   }
 
-  function handleToggleSaved() {
-    if (!verse) return
-    setVerseSaved(toggleSavedVerse(verse.reference))
+  async function handleToggleSaved() {
+    const versesToMark = verse?.verses || []
+    if (versesToMark.length === 0 || savingVerse) return
+    setSavingVerse(true)
+    try {
+      if (verseSaved) {
+        for (const v of versesToMark) {
+          await removeHighlight(verseKey(v))
+        }
+        setVerseSaved(false)
+      } else {
+        for (const v of versesToMark) {
+          await setHighlight(verseKey(v), {
+            color: 'saved',
+            reference: `${v.book_name} ${v.chapter}:${v.verse}`,
+            text: v.text.trim(),
+          })
+        }
+        setVerseSaved(true)
+      }
+    } finally {
+      setSavingVerse(false)
+    }
   }
 
   return (
@@ -87,7 +114,7 @@ export function Home() {
             <Logo size={20} />
           </Link>
           <div className="flex items-center gap-4 text-pure-white">
-            <Link to="/bible" aria-label="Search the Bible">
+            <Link to="/search" aria-label="Search Rooted">
               <SearchIcon />
             </Link>
             <HamburgerMenu light />
