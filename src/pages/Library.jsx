@@ -6,12 +6,11 @@ import { Drawer } from '../components/Drawer'
 import { HamburgerMenu } from '../components/HamburgerMenu'
 import { Logo } from '../components/Logo'
 import { TYPE_ICONS } from '../components/LibraryIcons'
-import { LIBRARY_TYPES, formatRelativeTime, matchesSearch, typeConfig } from '../lib/library'
+import { LIBRARY_TYPES, matchesSearch, typeConfig } from '../lib/library'
 import { createEntry, getProfile, listEntries, listHighlights } from '../lib/db'
 
 const DEFAULT_HERO_IMAGE = '/hero-sunset.jpg'
 const RECENT_LIMIT = 3
-const REVISIT_AFTER_DAYS = 14
 
 const SORTS = [
   { id: 'newest', label: 'Newest' },
@@ -105,15 +104,6 @@ export function Library() {
     else if (sort === 'az') sorted.sort((a, b) => a.title.localeCompare(b.title))
     return sorted
   }, [entries, activeType, query, sort])
-
-  const revisitEntries = useMemo(() => {
-    if (!entries) return []
-    const cutoff = Date.now() - REVISIT_AFTER_DAYS * 24 * 60 * 60 * 1000
-    return entries
-      .filter((e) => e.updatedAt < cutoff)
-      .sort((a, b) => a.updatedAt - b.updatedAt)
-      .slice(0, 6)
-  }, [entries])
 
   const hasFilter = activeType !== 'all' || query.trim()
   const visibleRecent = hasFilter || showAllRecent ? filtered : filtered.slice(0, RECENT_LIMIT)
@@ -279,36 +269,6 @@ export function Library() {
             })}
           </div>
         </section>
-
-        {revisitEntries.length > 0 && (
-          <section className="mt-8">
-            <h2 className="font-display text-xl font-semibold text-ink-black">Revisit later</h2>
-            <div className="no-scrollbar mt-3 flex gap-3 overflow-x-auto pb-1">
-              {revisitEntries.map((entry) => {
-                const cfg = typeConfig(entry.type || 'reflection')
-                const Icon = TYPE_ICONS[entry.type || 'reflection']
-                return (
-                  <Link
-                    key={entry.id}
-                    to={`/journal/${entry.id}`}
-                    className="w-44 shrink-0 rounded-card border border-black/10 bg-pure-white p-3"
-                  >
-                    <div
-                      className="flex h-9 w-9 items-center justify-center rounded-card"
-                      style={{ backgroundColor: `${cfg.hex}33` }}
-                    >
-                      <Icon color="#234386" size={16} />
-                    </div>
-                    <p className="mt-2 truncate font-display text-sm font-medium text-ink-black">{entry.title}</p>
-                    <p className="mt-0.5 font-body text-xs text-black/50">
-                      Updated {formatRelativeTime(entry.updatedAt)}
-                    </p>
-                  </Link>
-                )
-              })}
-            </div>
-          </section>
-        )}
       </div>
 
       <Drawer open={addDrawerOpen} onClose={() => setAddDrawerOpen(false)} title="Add to your journal">
