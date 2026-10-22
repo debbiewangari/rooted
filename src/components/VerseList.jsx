@@ -34,7 +34,7 @@ function HighlightIcon() {
 // place to the color picker. Highlights are loaded fresh here so this works
 // the same wherever a passage is shown (Bible reader, theme detail, ...)
 // without duplicating the picker logic.
-export function VerseList({ verses, fallbackText, className = '' }) {
+export function VerseList({ verses, fallbackText, className = '', onScroll }) {
   const [highlights, setHighlights] = useState({})
   const [selection, setSelection] = useState(null) // { verses, text, rect }
   const [mode, setMode] = useState('menu') // 'menu' | 'colors'
@@ -181,7 +181,7 @@ export function VerseList({ verses, fallbackText, className = '' }) {
 
   return (
     <>
-      <div ref={containerRef} className={className}>
+      <div ref={containerRef} className={className} onScroll={onScroll}>
         {verses.map((v) => {
           const key = verseKey(v)
           const colorId = highlights[key]

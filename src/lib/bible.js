@@ -1,4 +1,7 @@
 import { cachePassage, getCachedPassage, listCachedPassages } from './bibleCache'
+import { NEW_TESTAMENT, OLD_TESTAMENT } from './bibleBooks'
+
+const ALL_BOOKS = [...OLD_TESTAMENT, ...NEW_TESTAMENT]
 
 // bible-api.com only serves public-domain translations (no key required).
 // Copyrighted versions (NIV, NKJV, AMP, ESV, ...) need a licensed provider
@@ -72,4 +75,43 @@ export async function fetchPassage(reference, translation = DEFAULT_TRANSLATION)
 export async function recentPassages(limit = 5) {
   const rows = await listCachedPassages()
   return rows.slice(0, limit)
+}
+
+// Picks the book a reference like "2 Samuel 11" or "Psalm 23:1" starts
+// with by matching against the known book list (longest name wins, so a
+// reference starting with "1 John" isn't mistaken for "John"), then reads
+// the chapter number right after it.
+export function parseReference(reference) {
+  const ref = (reference || '').trim()
+  const lower = ref.toLowerCase()
+  let matched = null
+  for (const book of ALL_BOOKS) {
+    const prefix = `${book.name.toLowerCase()} `
+    if (lower.startsWith(prefix) && (!matched || book.name.length > matched.name.length)) {
+      matched = book
+    }
+  }
+  if (!matched) return null
+  const rest = ref.slice(matched.name.length).trim()
+  const chapterMatch = rest.match(/^(\d+)/)
+  if (!chapterMatch) return null
+  return { book: matched, chapter: parseInt(chapterMatch[1], 10) }
+}
+
+// The next (direction 1) or previous (direction -1) chapter's reference,
+// rolling over into the next/previous book at a book's first/last chapter
+// — null past Genesis 1 or Revelation 22, or if the reference can't be
+// parsed at all (a keyword search rather than book+chapter, say).
+export function adjacentChapterReference(reference, direction) {
+  const parsed = parseReference(reference)
+  if (!parsed) return null
+  const { book, chapter } = parsed
+  const nextChapter = chapter + direction
+  if (nextChapter >= 1 && nextChapter <= book.chapters) {
+    return `${book.name} ${nextChapter}`
+  }
+  const index = ALL_BOOKS.findIndex((b) => b.name === book.name)
+  const nextBook = ALL_BOOKS[index + direction]
+  if (!nextBook) return null
+  return `${nextBook.name} ${direction > 0 ? 1 : nextBook.chapters}`
 }

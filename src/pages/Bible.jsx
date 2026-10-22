@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { BookChapterPicker } from '../components/BookChapterPicker'
 import { BotanicalSprig } from '../components/BotanicalLine'
 import { HamburgerMenu } from '../components/HamburgerMenu'
 import { Logo } from '../components/Logo'
 import { DEFAULT_TRANSLATION, TRANSLATIONS, recentPassages } from '../lib/bible'
-import { NEW_TESTAMENT, OLD_TESTAMENT } from '../lib/bibleBooks'
 import { getProfile, listHighlights } from '../lib/db'
 
 const TRANSLATION_KEY = 'rooted:translation'
@@ -52,9 +52,6 @@ export function Bible() {
   )
   const [versionOpen, setVersionOpen] = useState(false)
 
-  const [testament, setTestament] = useState('OT')
-  const [expandedBook, setExpandedBook] = useState(null)
-
   const [heroImageUrl, setHeroImageUrl] = useState(DEFAULT_HERO_IMAGE)
   const [continueReading, setContinueReading] = useState(null)
   const [savedCount, setSavedCount] = useState(0)
@@ -96,7 +93,6 @@ export function Bible() {
   }
 
   const activeTranslation = TRANSLATIONS.find((t) => t.id === translation)
-  const books = testament === 'OT' ? OLD_TESTAMENT : NEW_TESTAMENT
 
   return (
     <div className="min-h-screen pb-6">
@@ -188,70 +184,8 @@ export function Bible() {
 
         <section className="mt-8">
           <h2 className="font-display text-xl font-semibold text-ink-black">Browse</h2>
-
-          <div className="mt-3 flex rounded-pill border border-black/10 bg-pure-white p-1">
-            {[
-              ['OT', 'Old Testament'],
-              ['NT', 'New Testament'],
-            ].map(([id, label]) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => {
-                  setTestament(id)
-                  setExpandedBook(null)
-                }}
-                className={`flex-1 rounded-pill py-2 font-label text-[11px] uppercase tracking-label transition-colors ${
-                  testament === id ? 'bg-deep-indigo text-pure-white' : 'text-deep-indigo'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-
-          <div className="mt-4 flex flex-col gap-3">
-            {books.map((book) => {
-              const expanded = expandedBook === book.name
-              return (
-                <div key={book.name} className="overflow-hidden rounded-card border border-black/10 bg-pure-white">
-                  <button
-                    type="button"
-                    onClick={() => setExpandedBook(expanded ? null : book.name)}
-                    className="flex w-full items-center justify-between gap-3 px-4 py-3"
-                  >
-                    <div className="min-w-0 text-left">
-                      <p className="font-display text-base font-medium text-ink-black">{book.name}</p>
-                      <p className="font-label text-[10px] uppercase tracking-label text-black/40">
-                        {book.chapters} chapter{book.chapters === 1 ? '' : 's'}
-                      </p>
-                    </div>
-                    <span
-                      className={`shrink-0 font-label text-base text-deep-indigo transition-transform ${
-                        expanded ? 'rotate-90' : ''
-                      }`}
-                    >
-                      ›
-                    </span>
-                  </button>
-
-                  {expanded && (
-                    <div className="grid grid-cols-9 gap-1.5 border-t border-black/8 px-4 py-3">
-                      {Array.from({ length: book.chapters }, (_, i) => i + 1).map((chapter) => (
-                        <button
-                          key={chapter}
-                          type="button"
-                          onClick={() => openChapter(book.name, chapter)}
-                          className="aspect-square rounded-[10px] border border-black/10 font-label text-[10px] text-deep-indigo"
-                        >
-                          {chapter}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )
-            })}
+          <div className="mt-3">
+            <BookChapterPicker onSelectChapter={openChapter} />
           </div>
         </section>
       </div>
