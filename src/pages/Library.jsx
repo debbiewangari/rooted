@@ -182,14 +182,18 @@ export function Library() {
               // Scripture isn't a journal_entries type anyone actually
               // writes — it's the verses saved from the Bible tab, so this
               // tile points at that list instead of filtering entries.
+              // Studies now have their own hierarchy (series -> chapters),
+              // so that tile opens the series table of contents instead.
               const isScripture = t.id === 'scripture'
-              const Tag = isScripture ? Link : 'button'
+              const isStudy = t.id === 'study'
+              const linksElsewhere = isScripture || isStudy
+              const Tag = linksElsewhere ? Link : 'button'
               return (
                 <Tag
                   key={t.id}
-                  type={isScripture ? undefined : 'button'}
-                  to={isScripture ? '/bible/saved' : undefined}
-                  onClick={isScripture ? undefined : () => setActiveType(t.id)}
+                  type={linksElsewhere ? undefined : 'button'}
+                  to={isScripture ? '/bible/saved' : isStudy ? '/series' : undefined}
+                  onClick={linksElsewhere ? undefined : () => setActiveType(t.id)}
                   className="flex items-center justify-between rounded-card p-3 text-left"
                   style={{ backgroundColor: `${t.hex}33` }}
                 >

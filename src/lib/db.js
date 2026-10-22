@@ -68,6 +68,10 @@ function fromEntryRow(row) {
     tags: row.tags || [],
     entryDate: row.entry_date,
     entryTime: row.entry_time || '',
+    seriesId: row.series_id || null,
+    chapterOrder: row.chapter_order,
+    subtitle: row.subtitle || '',
+    introHtml: row.intro_html || '',
     createdAt: toMs(row.created_at),
     updatedAt: toMs(row.updated_at),
   }
@@ -85,7 +89,19 @@ export async function getEntry(id) {
   return data ? fromEntryRow(data) : null
 }
 
-export async function createEntry({ title, reference, type, tags, sections, entryDate, entryTime }) {
+export async function createEntry({
+  title,
+  reference,
+  type,
+  tags,
+  sections,
+  entryDate,
+  entryTime,
+  seriesId,
+  chapterOrder,
+  subtitle,
+  introHtml,
+}) {
   const userId = await getUserId()
   const { data, error } = await supabase
     .from('journal_entries')
@@ -98,6 +114,10 @@ export async function createEntry({ title, reference, type, tags, sections, entr
       tags: Array.isArray(tags) ? tags : [],
       entry_date: entryDate || todayDateString(),
       entry_time: entryTime || '',
+      series_id: seriesId || null,
+      chapter_order: chapterOrder ?? null,
+      subtitle: subtitle?.trim() || '',
+      intro_html: introHtml || '',
     })
     .select()
     .single()
@@ -114,6 +134,10 @@ export async function updateEntry(id, changes) {
   if (changes.tags !== undefined) payload.tags = changes.tags
   if (changes.entryDate !== undefined) payload.entry_date = changes.entryDate || todayDateString()
   if (changes.entryTime !== undefined) payload.entry_time = changes.entryTime || ''
+  if (changes.seriesId !== undefined) payload.series_id = changes.seriesId || null
+  if (changes.chapterOrder !== undefined) payload.chapter_order = changes.chapterOrder
+  if (changes.subtitle !== undefined) payload.subtitle = changes.subtitle?.trim() || ''
+  if (changes.introHtml !== undefined) payload.intro_html = changes.introHtml || ''
 
   const { data, error } = await supabase.from('journal_entries').update(payload).eq('id', id).select().single()
   if (error) throw error
@@ -122,6 +146,127 @@ export async function updateEntry(id, changes) {
 
 export async function deleteEntry(id) {
   const { error } = await supabase.from('journal_entries').delete().eq('id', id)
+  if (error) throw error
+}
+
+// Study series --------------------------------------------------------------
+// A series is a table-of-contents over a group of chapters (journal_entries
+// rows with series_id set) — this mirrors the Theme/Event cover-image
+// pattern exactly, just with chapters instead of tagged entries/days.
+function fromSeriesRow(row) {
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description || '',
+    theme: row.theme || '',
+    anchorReference: row.anchor_reference || '',
+    imageUrl: publicCoverUrl(row.cover_image_path),
+    lastOpenedChapterId: row.last_opened_chapter_id || null,
+    createdAt: toMs(row.created_at),
+  }
+}
+
+export async function listStudySeries() {
+  const { data, error } = await supabase.from('study_series').select('*').order('created_at', { ascending: true })
+  if (error) throw error
+  return data.map(fromSeriesRow)
+}
+
+export async function getStudySeries(id) {
+  const { data, error } = await supabase.from('study_series').select('*').eq('id', id).maybeSingle()
+  if (error) throw error
+  return data ? fromSeriesRow(data) : null
+}
+
+export async function createStudySeries({ title, description, theme, anchorReference, imageBlob }) {
+  const userId = await getUserId()
+  const id = makeId()
+  let imagePath = null
+  if (imageBlob) {
+    imagePath = `${userId}/series-${id}.jpg`
+    await uploadCover(imagePath, imageBlob)
+  }
+  const { data, error } = await supabase
+    .from('study_series')
+    .insert({
+      id,
+      user_id: userId,
+      title: title.trim(),
+      description: description?.trim() || '',
+      theme: theme?.trim() || '',
+      anchor_reference: anchorReference?.trim() || '',
+      cover_image_path: imagePath,
+    })
+    .select()
+    .single()
+  if (error) throw error
+  return fromSeriesRow(data)
+}
+
+// `imageBlob` (a freshly picked file) replaces the cover; `removeImage`
+// clears it; omitting both leaves the existing cover untouched.
+export async function updateStudySeries(id, { title, description, theme, anchorReference, imageBlob, removeImage }) {
+  const userId = await getUserId()
+  const payload = {}
+  if (title !== undefined) payload.title = title.trim()
+  if (description !== undefined) payload.description = description?.trim() || ''
+  if (theme !== undefined) payload.theme = theme?.trim() || ''
+  if (anchorReference !== undefined) payload.anchor_reference = anchorReference?.trim() || ''
+
+  if (imageBlob) {
+    const imagePath = `${userId}/series-${id}.jpg`
+    await uploadCover(imagePath, imageBlob)
+    payload.cover_image_path = imagePath
+  } else if (removeImage) {
+    const { data: row } = await supabase.from('study_series').select('cover_image_path').eq('id', id).maybeSingle()
+    await removeCover(row?.cover_image_path)
+    payload.cover_image_path = null
+  }
+
+  const { data, error } = await supabase.from('study_series').update(payload).eq('id', id).select().single()
+  if (error) throw error
+  return fromSeriesRow(data)
+}
+
+export async function deleteStudySeries(id) {
+  const { data: row } = await supabase.from('study_series').select('cover_image_path').eq('id', id).maybeSingle()
+  if (row?.cover_image_path) await removeCover(row.cover_image_path)
+  // Chapters cascade-delete via the series_id FK — nothing left stranded.
+  const { error } = await supabase.from('study_series').delete().eq('id', id)
+  if (error) throw error
+}
+
+export async function listChaptersForSeries(seriesId) {
+  const { data, error } = await supabase
+    .from('journal_entries')
+    .select('*')
+    .eq('series_id', seriesId)
+    .order('chapter_order', { ascending: true, nullsFirst: false })
+    .order('created_at', { ascending: true })
+  if (error) throw error
+  return data.map(fromEntryRow)
+}
+
+// Persists a drag-reorder of a series' chapters — chapter_order is just the
+// chapter's index in the new order.
+export async function reorderChapters(chapterIds) {
+  for (let i = 0; i < chapterIds.length; i++) {
+    const { error } = await supabase.from('journal_entries').update({ chapter_order: i }).eq('id', chapterIds[i])
+    if (error) throw error
+  }
+}
+
+// Detaches a chapter from its series without deleting it — it becomes a
+// standalone study, same as "remove chapter" is meant to work (destructive
+// delete is still available from inside the chapter itself).
+export async function removeChapterFromSeries(chapterId) {
+  return updateEntry(chapterId, { seriesId: null, chapterOrder: null })
+}
+
+// Called whenever a chapter is opened, so the series' "Continue" button can
+// resume where the user left off.
+export async function touchSeriesLastOpened(seriesId, chapterId) {
+  const { error } = await supabase.from('study_series').update({ last_opened_chapter_id: chapterId }).eq('id', seriesId)
   if (error) throw error
 }
 

@@ -11,6 +11,10 @@ import { Themes } from './pages/Themes'
 import { ThemeNew } from './pages/ThemeNew'
 import { ThemeDetail } from './pages/ThemeDetail'
 import { ThemeEdit } from './pages/ThemeEdit'
+import { SeriesList } from './pages/SeriesList'
+import { SeriesNew } from './pages/SeriesNew'
+import { SeriesDetail } from './pages/SeriesDetail'
+import { SeriesEdit } from './pages/SeriesEdit'
 import { CalendarDay } from './pages/CalendarDay'
 import { CalendarPage } from './pages/CalendarPage'
 import { EventDetail } from './pages/EventDetail'
@@ -41,6 +45,10 @@ export default function App() {
         <Route path="/journal" element={<Library />} />
         <Route path="/journal/new" element={<JournalEntry />} />
         <Route path="/journal/:id" element={<JournalEntry />} />
+        <Route path="/series" element={<SeriesList />} />
+        <Route path="/series/new" element={<SeriesNew />} />
+        <Route path="/series/:id" element={<SeriesDetail />} />
+        <Route path="/series/:id/edit" element={<SeriesEdit />} />
         <Route path="/bible" element={<Bible />} />
         <Route path="/bible/read" element={<BibleRead />} />
         <Route path="/bible/saved" element={<SavedVerses />} />

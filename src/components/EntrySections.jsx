@@ -1,4 +1,7 @@
 import { useState } from 'react'
+import { DndContext, PointerSensor, closestCenter, useSensor, useSensors } from '@dnd-kit/core'
+import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { Card } from './Card'
 import { EventVerseList } from './EventVerseList'
 import { RichTextEditor } from './RichTextEditor'
@@ -6,6 +9,34 @@ import { legacyItemsToHtml } from '../lib/library'
 
 function makeId() {
   return crypto.randomUUID()
+}
+
+function DragHandle(props) {
+  return (
+    <span
+      {...props}
+      aria-label="Drag to reorder"
+      className="cursor-grab touch-none select-none px-1 pb-1 text-base leading-none text-black/25 active:cursor-grabbing"
+    >
+      ⠿
+    </span>
+  )
+}
+
+function ChevronIcon({ open }) {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      className={`shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
+    >
+      <path d="m6 9 6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
 }
 
 const DEFAULT_DATA = {
@@ -21,37 +52,53 @@ function hasValue(section, kind) {
 // the read/edit toggle event-day sections use: scripture has no controls
 // (remove, add a verse) visible until you tap in, so a saved entry reads
 // as plain bullets instead of a permanently "open" editor.
-function EntrySectionBlock({ section, typeDef, onUpdateData, onRemove, onLink }) {
+function EntrySectionBlock({ section, typeDef, onUpdateData, onRemove, onLink, dragHandleProps }) {
   const isScripture = typeDef.kind === 'scripture'
   const [editing, setEditing] = useState(!hasValue(section, typeDef.kind))
+  const [collapsed, setCollapsed] = useState(false)
 
   return (
     <div>
-      <div className="flex items-baseline justify-between">
-        {isScripture ? (
-          <button
-            type="button"
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => setEditing((e) => !e)}
-            className="font-label text-[11px] uppercase tracking-label text-black/40"
-          >
+      <div className="flex items-center justify-between gap-2">
+        <button
+          type="button"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => setCollapsed((c) => !c)}
+          className="flex min-w-0 items-center gap-1.5 text-left"
+          aria-label={collapsed ? 'Expand section' : 'Collapse section'}
+        >
+          <span className="text-black/30">
+            <ChevronIcon open={!collapsed} />
+          </span>
+          <span className="truncate font-label text-[11px] uppercase tracking-label text-black/40">
             {typeDef.label}
-          </button>
-        ) : (
-          <span className="font-label text-[11px] uppercase tracking-label text-black/40">{typeDef.label}</span>
-        )}
-        {(!isScripture || editing) && (
-          <button
-            type="button"
-            onClick={onRemove}
-            className="font-label text-[10px] uppercase tracking-label text-black/30"
-          >
-            Remove
-          </button>
-        )}
+          </span>
+        </button>
+        <div className="flex shrink-0 items-center gap-3">
+          {isScripture && !collapsed && (
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => setEditing((e) => !e)}
+              className="font-label text-[10px] uppercase tracking-label text-deep-indigo"
+            >
+              {editing ? 'Done' : 'Edit'}
+            </button>
+          )}
+          {(!isScripture || editing) && !collapsed && (
+            <button
+              type="button"
+              onClick={onRemove}
+              className="font-label text-[10px] uppercase tracking-label text-black/30"
+            >
+              Remove
+            </button>
+          )}
+          <DragHandle {...dragHandleProps} />
+        </div>
       </div>
 
-      {typeDef.kind === 'scripture' &&
+      {!collapsed && typeDef.kind === 'scripture' &&
         (editing ? (
           <div className="mt-1">
             <EventVerseList
@@ -81,7 +128,7 @@ function EntrySectionBlock({ section, typeDef, onUpdateData, onRemove, onLink })
           </button>
         ))}
 
-      {typeDef.kind === 'richtext' && (
+      {!collapsed && typeDef.kind === 'richtext' && (
         <div className="mt-1">
           <RichTextEditor
             value={section.data?.html ?? (section.data?.items ? legacyItemsToHtml(section.data.items) : '')}
@@ -95,6 +142,30 @@ function EntrySectionBlock({ section, typeDef, onUpdateData, onRemove, onLink })
   )
 }
 
+function SortableEntrySection({ section, typeDef, onUpdateData, onRemove, onLink }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: section.id })
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+  }
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <Card>
+        <EntrySectionBlock
+          section={section}
+          typeDef={typeDef}
+          onUpdateData={onUpdateData}
+          onRemove={onRemove}
+          onLink={onLink}
+          dragHandleProps={{ ...attributes, ...listeners }}
+        />
+      </Card>
+    </div>
+  )
+}
+
 // A CMS-style block list: a Library entry is built from whichever sections
 // the user chooses — built-in types (Notes, Scriptures, Bible Story,
 // Prophetic Declarations, Prayer, Testimony) are always offered, and a
@@ -104,6 +175,15 @@ function EntrySectionBlock({ section, typeDef, onUpdateData, onRemove, onLink })
 export function EntrySections({ sections, onChange, onLink, typeDefs, onCreateType }) {
   const [addingType, setAddingType] = useState(false)
   const [newTypeName, setNewTypeName] = useState('')
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
+
+  function handleDragEnd(event) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const oldIndex = sections.findIndex((s) => s.id === active.id)
+    const newIndex = sections.findIndex((s) => s.id === over.id)
+    onChange(arrayMove(sections, oldIndex, newIndex))
+  }
 
   function typeDefFor(typeId) {
     return typeDefs.find((t) => t.id === typeId) || { id: typeId, label: 'Section', kind: 'richtext' }
@@ -132,17 +212,20 @@ export function EntrySections({ sections, onChange, onLink, typeDefs, onCreateTy
 
   return (
     <div className="flex flex-col gap-5">
-      {sections.map((section) => (
-        <Card key={section.id}>
-          <EntrySectionBlock
-            section={section}
-            typeDef={typeDefFor(section.type)}
-            onUpdateData={(data) => updateSection(section.id, data)}
-            onRemove={() => removeSection(section.id)}
-            onLink={onLink}
-          />
-        </Card>
-      ))}
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={sections.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+          {sections.map((section) => (
+            <SortableEntrySection
+              key={section.id}
+              section={section}
+              typeDef={typeDefFor(section.type)}
+              onUpdateData={(data) => updateSection(section.id, data)}
+              onRemove={() => removeSection(section.id)}
+              onLink={onLink}
+            />
+          ))}
+        </SortableContext>
+      </DndContext>
 
       {sections.length === 0 && (
         <p className="font-body text-sm text-black/40">

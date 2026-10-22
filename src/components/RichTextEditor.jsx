@@ -74,6 +74,12 @@ const SIZE_OPTIONS = [
   { label: 'X-Large', value: '7' },
 ]
 
+const BLOCK_OPTIONS = [
+  { label: 'Paragraph', value: 'P' },
+  { label: 'Heading', value: 'H3' },
+  { label: 'Quote', value: 'BLOCKQUOTE' },
+]
+
 function Divider() {
   return <span className="mx-0.5 h-5 w-px shrink-0 self-center bg-black/10" />
 }
@@ -88,7 +94,7 @@ export function RichTextEditor({ value, onChange, onBlur, placeholder, onLink })
   const fileInputRef = useRef(null)
   const colorInputRef = useRef(null)
   const [uploading, setUploading] = useState(false)
-  const [openMenu, setOpenMenu] = useState(null) // 'font' | 'size' | 'highlight' | 'color' | null
+  const [openMenu, setOpenMenu] = useState(null) // 'font' | 'size' | 'block' | 'highlight' | 'color' | null
   // Opening the native file picker (or a native <input type="color">) blurs
   // the editable div the moment the dialog appears — without this, that
   // blur alone (before the user has picked anything) would fire `onBlur`
@@ -293,6 +299,39 @@ export function RichTextEditor({ value, onChange, onBlur, placeholder, onLink })
                     className="block w-full px-3 py-2 text-left font-body text-sm text-ink-black hover:bg-cream-paper"
                   >
                     {s.label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="relative">
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => toggleMenu('block')}
+            className="flex h-7 items-center gap-0.5 rounded px-1.5 font-label text-[9px] uppercase tracking-label text-deep-indigo hover:bg-cream-paper"
+            aria-label="Block style"
+          >
+            Block <ChevronDown />
+          </button>
+          {openMenu === 'block' && (
+            <>
+              <div className="fixed inset-0 z-30" onClick={() => setOpenMenu(null)} />
+              <div className="absolute left-0 top-full z-40 mt-1 w-36 overflow-hidden rounded-card border border-black/8 bg-pure-white shadow-xl-2">
+                {BLOCK_OPTIONS.map((b) => (
+                  <button
+                    key={b.value}
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      exec('formatBlock', `<${b.value}>`)
+                      setOpenMenu(null)
+                    }}
+                    className="block w-full px-3 py-2 text-left font-body text-sm text-ink-black hover:bg-cream-paper"
+                  >
+                    {b.label}
                   </button>
                 ))}
               </div>

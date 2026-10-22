@@ -6,6 +6,7 @@ import { FilledButton, OutlinedButton } from '../components/Button'
 import { EntryLinks } from '../components/EntryLinks'
 import { EntrySections } from '../components/EntrySections'
 import { EventVerseList } from '../components/EventVerseList'
+import { RichTextEditor } from '../components/RichTextEditor'
 import { DEFAULT_TRANSLATION, fetchPassage } from '../lib/bible'
 import { LIBRARY_TYPES, SECTION_TYPES, legacyItemsToHtml, typeConfig } from '../lib/library'
 import {
@@ -14,8 +15,11 @@ import {
   createTag,
   deleteEntry,
   getEntry,
+  getStudySeries,
+  listChaptersForSeries,
   listLibrarySectionTypes,
   listTags,
+  touchSeriesLastOpened,
   updateEntry,
 } from '../lib/db'
 
@@ -53,6 +57,10 @@ export function JournalEntry() {
   })
   const [entryDate, setEntryDate] = useState(todayLocal())
   const [entryTime, setEntryTime] = useState('')
+  const [subtitle, setSubtitle] = useState('')
+  const [introHtml, setIntroHtml] = useState('')
+  const [seriesId, setSeriesId] = useState(null)
+  const [seriesInfo, setSeriesInfo] = useState(null) // { series, chapters } once loaded
   const [allTags, setAllTags] = useState([])
   const [typeDefs, setTypeDefs] = useState(SECTION_TYPES)
   const [newTagName, setNewTagName] = useState('')
@@ -99,9 +107,27 @@ export function JournalEntry() {
       setTags(entry.tags || [])
       setEntryDate(entry.entryDate || todayLocal())
       setEntryTime(entry.entryTime || '')
+      setSubtitle(entry.subtitle || '')
+      setIntroHtml(entry.introHtml || '')
+      setSeriesId(entry.seriesId || null)
       setLoading(false)
     })
   }, [id, navigate])
+
+  // A chapter's series is only loaded once the chapter itself has — gives
+  // the prev/next nav and "back to series" breadcrumb, and marks this as
+  // the series' last-opened chapter so its "Continue" button resumes here.
+  useEffect(() => {
+    if (!entryId || !seriesId) {
+      setSeriesInfo(null)
+      return
+    }
+    Promise.all([getStudySeries(seriesId), listChaptersForSeries(seriesId)]).then(([series, chapters]) => {
+      if (!series) return
+      setSeriesInfo({ series, chapters })
+    })
+    touchSeriesLastOpened(seriesId, entryId).catch(() => {})
+  }, [entryId, seriesId])
 
   useEffect(() => {
     if (!reference.trim()) {
@@ -143,6 +169,8 @@ export function JournalEntry() {
       tags,
       entryDate,
       entryTime,
+      subtitle,
+      introHtml,
     })
     setEntryId(created.id)
     setSavedAt(Date.now())
@@ -157,13 +185,21 @@ export function JournalEntry() {
     }
     setSaving(true)
     const timeout = setTimeout(() => {
-      autosave({ title, sections, reference: reference || null, type, tags, entryDate, entryTime }).finally(() =>
-        setSaving(false),
-      )
+      autosave({
+        title,
+        sections,
+        reference: reference || null,
+        type,
+        tags,
+        entryDate,
+        entryTime,
+        subtitle,
+        introHtml,
+      }).finally(() => setSaving(false))
     }, 700)
     return () => clearTimeout(timeout)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, sections, reference, type, tags, entryDate, entryTime])
+  }, [title, sections, reference, type, tags, entryDate, entryTime, subtitle, introHtml])
 
   function toggleTag(name) {
     setTags((t) => (t.includes(name) ? t.filter((x) => x !== name) : [...t, name]))
@@ -179,7 +215,17 @@ export function JournalEntry() {
 
   async function handleSave(e) {
     e.preventDefault()
-    await autosave({ title, sections, reference: reference || null, type, tags, entryDate, entryTime })
+    await autosave({
+      title,
+      sections,
+      reference: reference || null,
+      type,
+      tags,
+      entryDate,
+      entryTime,
+      subtitle,
+      introHtml,
+    })
     if (entryId) {
       setEditing(false)
     } else {
@@ -200,6 +246,14 @@ export function JournalEntry() {
     return <p className="px-6 pt-10 font-body text-sm text-black/50">Loading…</p>
   }
 
+  const isStudy = type === 'study'
+  const chapterIndex = seriesInfo ? seriesInfo.chapters.findIndex((c) => c.id === entryId) : -1
+  const prevChapter = chapterIndex > 0 ? seriesInfo.chapters[chapterIndex - 1] : null
+  const nextChapter =
+    seriesInfo && chapterIndex >= 0 && chapterIndex < seriesInfo.chapters.length - 1
+      ? seriesInfo.chapters[chapterIndex + 1]
+      : null
+
   if (!editing) {
     const cfg = typeConfig(type)
     return (
@@ -210,26 +264,47 @@ export function JournalEntry() {
           </div>
           <div className="absolute inset-0 bg-gradient-to-t from-cream-paper via-transparent to-black/10" />
           <Link
-            to="/journal"
+            to={seriesInfo ? `/series/${seriesInfo.series.id}` : '/journal'}
             className="absolute left-4 top-4 flex h-9 w-9 items-center justify-center rounded-pill bg-pure-white/90 font-display text-lg text-deep-indigo"
-            aria-label="Back to library"
+            aria-label={seriesInfo ? 'Back to series' : 'Back to library'}
           >
             ←
           </Link>
-          <button
-            type="button"
-            onClick={() => setEditing(true)}
-            className="absolute right-4 top-4 rounded-pill bg-pure-white/90 px-4 py-2 font-label text-[11px] uppercase tracking-label text-deep-indigo"
-          >
-            Edit
-          </button>
+          {isStudy ? (
+            <div className="absolute right-4 top-4 flex overflow-hidden rounded-pill bg-pure-white/90 p-0.5">
+              <button
+                type="button"
+                onClick={() => {}}
+                className="rounded-pill bg-deep-indigo px-3 py-1.5 font-label text-[10px] uppercase tracking-label text-pure-white"
+              >
+                Reading
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditing(true)}
+                className="rounded-pill px-3 py-1.5 font-label text-[10px] uppercase tracking-label text-deep-indigo"
+              >
+                Workspace
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="absolute right-4 top-4 rounded-pill bg-pure-white/90 px-4 py-2 font-label text-[11px] uppercase tracking-label text-deep-indigo"
+            >
+              Edit
+            </button>
+          )}
         </div>
 
         <div className="px-6 pt-4">
           <p className="font-label text-[11px] uppercase tracking-label text-black/40">
             {cfg.singular} · {formatEntryDate(entryDate, entryTime)}
+            {seriesInfo && ` · Chapter ${chapterIndex + 1} of ${seriesInfo.chapters.length}`}
           </p>
           <h1 className="mt-1 font-display text-2xl font-semibold text-ink-black">{title}</h1>
+          {subtitle && <p className="mt-0.5 font-body text-sm text-black/60">{subtitle}</p>}
           {tags.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1.5">
               {tags.map((t) => (
@@ -243,6 +318,15 @@ export function JournalEntry() {
             </div>
           )}
         </div>
+
+        {isStudy && introHtml && introHtml.replace(/<[^>]*>/g, '').trim() && (
+          <div className="px-6">
+            <div
+              className="rich-text-editor mt-4 font-body text-base leading-relaxed text-black/80"
+              dangerouslySetInnerHTML={{ __html: introHtml }}
+            />
+          </div>
+        )}
 
         {reference && (
           <div className="px-6">
@@ -284,6 +368,29 @@ export function JournalEntry() {
           })}
         </div>
 
+        {seriesInfo && (prevChapter || nextChapter) && (
+          <div className="mt-4 flex items-center justify-between gap-3 px-6">
+            {prevChapter ? (
+              <Link
+                to={`/journal/${prevChapter.id}`}
+                className="font-label text-[11px] uppercase tracking-label text-deep-indigo"
+              >
+                ← Prev chapter
+              </Link>
+            ) : (
+              <span />
+            )}
+            {nextChapter && (
+              <Link
+                to={`/journal/${nextChapter.id}`}
+                className="font-label text-[11px] uppercase tracking-label text-deep-indigo"
+              >
+                Next chapter →
+              </Link>
+            )}
+          </div>
+        )}
+
         <div className="px-6">
           <EntryLinks ref={linksRef} selfType="entry" selfId={entryId} />
         </div>
@@ -294,7 +401,11 @@ export function JournalEntry() {
   return (
     <form onSubmit={handleSave} className="flex min-h-screen flex-col px-6 pt-10 pb-6">
       <p className="font-label text-xs uppercase tracking-label text-black/40">
-        {entryId ? 'Edit entry' : 'New entry'}
+        {seriesInfo
+          ? `Chapter ${chapterIndex + 1} of ${seriesInfo.chapters.length} · Workspace`
+          : entryId
+            ? 'Edit entry'
+            : 'New entry'}
       </p>
 
       <input
@@ -303,6 +414,15 @@ export function JournalEntry() {
         placeholder="Title"
         className="mt-2 w-full border-none bg-transparent font-display text-2xl font-semibold text-ink-black placeholder:text-black/25 focus:outline-none"
       />
+
+      {isStudy && (
+        <input
+          value={subtitle}
+          onChange={(e) => setSubtitle(e.target.value)}
+          placeholder="Subtitle (optional)"
+          className="mt-1 w-full border-none bg-transparent font-body text-sm text-black/60 placeholder:text-black/25 focus:outline-none"
+        />
+      )}
 
       <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto pb-1">
         {LIBRARY_TYPES.map((t) => (
@@ -339,6 +459,21 @@ export function JournalEntry() {
           />
         </label>
       </div>
+
+      {isStudy && (
+        <div className="mt-4">
+          <span className="font-label text-[11px] uppercase tracking-label text-black/40">
+            Introduction (optional)
+          </span>
+          <div className="mt-1">
+            <RichTextEditor
+              value={introHtml}
+              onChange={setIntroHtml}
+              placeholder="Set up what this chapter covers…"
+            />
+          </div>
+        </div>
+      )}
 
       <label className="mt-4 block">
         <span className="font-label text-[11px] uppercase tracking-label text-black/40">

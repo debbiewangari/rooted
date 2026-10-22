@@ -10,6 +10,7 @@ import {
   listCalendarEvents,
   listEntries,
   listLinksFor,
+  listStudySeries,
   removeLink,
 } from '../lib/db'
 import { enumerateDates, formatShortDate } from '../lib/calendarUtils'
@@ -35,11 +36,12 @@ function targetKey(t) {
 // entry shows its own title; a day-note has none of its own, so it
 // borrows its event's title plus which day it is.
 async function loadAllTargets() {
-  const [entries, notes, cards, events] = await Promise.all([
+  const [entries, notes, cards, events, series] = await Promise.all([
     listEntries(),
     listAllEventNotes(),
     listAllPrayerCards(),
     listCalendarEvents(),
+    listStudySeries(),
   ])
   const eventById = Object.fromEntries(events.map((e) => [e.id, e]))
 
@@ -82,7 +84,16 @@ async function loadAllTargets() {
     }
   })
 
-  return [...entryTargets, ...noteTargets, ...cardTargets]
+  const seriesTargets = series.map((s) => ({
+    type: 'study_series',
+    id: s.id,
+    title: s.title,
+    subtitle: 'Study series',
+    searchText: `${s.title} ${s.theme || ''}`.toLowerCase(),
+    href: `/series/${s.id}`,
+  }))
+
+  return [...entryTargets, ...noteTargets, ...cardTargets, ...seriesTargets]
 }
 
 function TargetIcon({ target }) {
