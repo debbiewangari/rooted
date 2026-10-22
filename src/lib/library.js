@@ -24,10 +24,6 @@ export const SECTION_TYPES = [
   { id: 'testimony', label: 'Testimony', kind: 'richtext', placeholder: 'Share what God has done…' },
 ]
 
-export function sectionConfig(typeId) {
-  return SECTION_TYPES.find((s) => s.id === typeId)
-}
-
 // Prayer sections used to be a fixed point-by-point list (add-only, no
 // editing a saved point) — now they're an open field like any other
 // richtext section. Entries saved under the old shape still have

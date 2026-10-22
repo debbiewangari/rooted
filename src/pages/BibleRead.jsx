@@ -37,9 +37,15 @@ export function BibleRead() {
   // the reader lingers at the bottom (re-reading the last verse, using the
   // selection toolbar, momentum-scroll bounce, ...).
   const autoAdvancedRef = useRef(false)
+  // A single graze of the bottom shouldn't be enough — this requires the
+  // scroll to stay pinned at the very end for a beat (a deliberate
+  // overscroll/hold) before advancing, canceling if the reader scrolls
+  // back up in the meantime.
+  const dwellTimerRef = useRef(null)
 
   useEffect(() => {
     autoAdvancedRef.current = false
+    clearTimeout(dwellTimerRef.current)
     if (!reference) {
       setStatus('error')
       setError('No reference given.')
@@ -76,10 +82,15 @@ export function BibleRead() {
   function handleVerseScroll(e) {
     if (autoAdvancedRef.current || !nextRef) return
     const el = e.target
-    if (el.scrollHeight - el.scrollTop - el.clientHeight < 24) {
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight <= 2
+    clearTimeout(dwellTimerRef.current)
+    if (!atBottom) return
+    // Still pinned at the bottom after a deliberate pause — not just a
+    // momentary scroll past it — is what counts as "overscrolling" here.
+    dwellTimerRef.current = setTimeout(() => {
       autoAdvancedRef.current = true
       goTo(nextRef)
-    }
+    }, 650)
   }
 
   const activeTranslation = TRANSLATIONS.find((t) => t.id === translation)
@@ -89,20 +100,9 @@ export function BibleRead() {
 
   return (
     <div className="min-h-screen px-6 pt-10 pb-6">
-      <div className="flex items-center justify-between gap-3">
-        <Link to="/bible" className="font-label text-[11px] uppercase tracking-label text-deep-indigo">
-          ← Back to Bible
-        </Link>
-        {nextRef && (
-          <button
-            type="button"
-            onClick={() => goTo(nextRef)}
-            className="font-label text-[11px] uppercase tracking-label text-deep-indigo"
-          >
-            Next chapter →
-          </button>
-        )}
-      </div>
+      <Link to="/bible" className="font-label text-[11px] uppercase tracking-label text-deep-indigo">
+        ← Back to Bible
+      </Link>
 
       {status === 'loading' && <p className="mt-6 font-body text-sm text-black/50">Loading…</p>}
       {status === 'error' && <p className="mt-6 font-body text-sm text-burnt-orange">{error}</p>}

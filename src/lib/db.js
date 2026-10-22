@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { SECTION_TYPES } from './library'
 
 const COVERS_BUCKET = 'covers'
 
@@ -534,6 +535,28 @@ export async function createDaySectionType(name, kind = 'richtext') {
     .single()
   if (error) throw error
   return { id: data.id, name: data.name, kind: data.kind, builtIn: false }
+}
+
+export async function listLibrarySectionTypes() {
+  const { data, error } = await supabase.from('library_section_types').select('*').order('name')
+  if (error) throw error
+  return data.map((row) => ({ id: row.id, label: row.name, kind: row.kind, builtIn: false }))
+}
+
+export async function createLibrarySectionType(name, kind = 'richtext') {
+  const trimmed = name.trim()
+  const existingCustom = await listLibrarySectionTypes()
+  const match = [...SECTION_TYPES, ...existingCustom].find((t) => t.label.toLowerCase() === trimmed.toLowerCase())
+  if (match) return match
+
+  const userId = await getUserId()
+  const { data, error } = await supabase
+    .from('library_section_types')
+    .insert({ user_id: userId, name: trimmed, kind })
+    .select()
+    .single()
+  if (error) throw error
+  return { id: data.id, label: data.name, kind: data.kind, builtIn: false }
 }
 
 // Standing prayer lists -------------------------------------------------

@@ -7,8 +7,17 @@ import { EntryLinks } from '../components/EntryLinks'
 import { EntrySections } from '../components/EntrySections'
 import { EventVerseList } from '../components/EventVerseList'
 import { DEFAULT_TRANSLATION, fetchPassage } from '../lib/bible'
-import { LIBRARY_TYPES, legacyItemsToHtml, sectionConfig, typeConfig } from '../lib/library'
-import { createEntry, createTag, deleteEntry, getEntry, listTags, updateEntry } from '../lib/db'
+import { LIBRARY_TYPES, SECTION_TYPES, legacyItemsToHtml, typeConfig } from '../lib/library'
+import {
+  createEntry,
+  createLibrarySectionType,
+  createTag,
+  deleteEntry,
+  getEntry,
+  listLibrarySectionTypes,
+  listTags,
+  updateEntry,
+} from '../lib/db'
 
 const TRANSLATION_KEY = 'rooted:translation'
 
@@ -45,6 +54,7 @@ export function JournalEntry() {
   const [entryDate, setEntryDate] = useState(todayLocal())
   const [entryTime, setEntryTime] = useState('')
   const [allTags, setAllTags] = useState([])
+  const [typeDefs, setTypeDefs] = useState(SECTION_TYPES)
   const [newTagName, setNewTagName] = useState('')
   const [referenceQuote, setReferenceQuote] = useState('')
   const [loading, setLoading] = useState(Boolean(id))
@@ -58,6 +68,20 @@ export function JournalEntry() {
   useEffect(() => {
     listTags().then(setAllTags)
   }, [])
+
+  // Section types are reusable across every entry for this account, so
+  // they're loaded once rather than per entry.
+  useEffect(() => {
+    listLibrarySectionTypes()
+      .then((custom) => setTypeDefs([...SECTION_TYPES, ...custom]))
+      .catch(() => {})
+  }, [])
+
+  async function handleCreateType(name) {
+    const type = await createLibrarySectionType(name)
+    setTypeDefs((prev) => (prev.some((t) => t.id === type.id) ? prev : [...prev, type]))
+    return type
+  }
 
   useEffect(() => {
     if (!id) return
@@ -232,7 +256,7 @@ export function JournalEntry() {
         <div className="px-6 mt-4 flex flex-col gap-4">
           {sections.length === 0 && <p className="font-body text-sm text-black/40">No sections yet.</p>}
           {sections.map((section) => {
-            const sCfg = sectionConfig(section.type)
+            const sCfg = typeDefs.find((t) => t.id === section.type)
             return (
               <Card key={section.id}>
                 <p className="font-label text-[11px] uppercase tracking-label text-black/40">{sCfg?.label}</p>
@@ -373,7 +397,13 @@ export function JournalEntry() {
       </div>
 
       <div className="mt-6 flex-1">
-        <EntrySections sections={sections} onChange={setSections} onLink={() => linksRef.current?.open()} />
+        <EntrySections
+          sections={sections}
+          onChange={setSections}
+          onLink={() => linksRef.current?.open()}
+          typeDefs={typeDefs}
+          onCreateType={handleCreateType}
+        />
       </div>
 
       <EntryLinks ref={linksRef} selfType="entry" selfId={entryId} ensureSelfId={ensureEntryId} />

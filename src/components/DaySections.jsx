@@ -180,9 +180,6 @@ export function DaySections({ sections, typeDefs, onChange, onCreateType, onLink
     onChange(arrayMove(sections, oldIndex, newIndex))
   }
 
-  const usedTypeIds = new Set(sections.map((s) => s.typeId))
-  const availableToAdd = typeDefs.filter((t) => !usedTypeIds.has(t.id))
-
   function addExisting(typeDef) {
     const data = DEFAULT_DATA[typeDef.kind] ? { ...DEFAULT_DATA[typeDef.kind] } : { html: '' }
     onChange([...sections, { id: crypto.randomUUID(), typeId: typeDef.id, data }])
@@ -217,9 +214,9 @@ export function DaySections({ sections, typeDefs, onChange, onCreateType, onLink
       {pickerOpen ? (
         <Card>
           <p className="font-label text-[11px] uppercase tracking-label text-black/40">Add a section</p>
-          {availableToAdd.length > 0 && (
+          {typeDefs.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-2">
-              {availableToAdd.map((t) => (
+              {typeDefs.map((t) => (
                 <button
                   key={t.id}
                   type="button"
